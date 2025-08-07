@@ -1,15 +1,33 @@
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 from app.config import EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD, EMAIL_USE_TLS, EMAIL_FROM, EMAIL_TO
 from app.logger import logger
+import os
 
-def send_email(subject: str, body: str):
+def send_email(subject: str, body: str, attachment_path: str = None):
     msg = MIMEMultipart()
     msg['From'] = EMAIL_FROM
     msg['To'] = EMAIL_TO
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain', 'utf-8'))
+    
+    # Adicionar anexo se fornecido
+    if attachment_path and os.path.exists(attachment_path):
+        with open(attachment_path, 'rb') as attachment:
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(attachment.read())
+        
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename= {os.path.basename(attachment_path)}'
+        )
+        msg.attach(part)
+        logger.info(f"Anexo adicionado: {attachment_path}")
+    
     try:
         server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
         if EMAIL_USE_TLS:

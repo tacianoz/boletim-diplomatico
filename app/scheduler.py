@@ -10,18 +10,17 @@ def get_target_dates(today=None):
         today = datetime.now(tz).date()
     weekday = today.weekday()  # 0=segunda
     if weekday == 0:
-        # Segunda: pegar sexta, sábado e domingo anteriores
-        fri = today - timedelta(days=3)
+        # Segunda: pegar sábado e domingo anteriores
         sat = today - timedelta(days=2)
         sun = today - timedelta(days=1)
-        return [fri, sat, sun]
+        return [sat, sun]
     else:
         # Outros dias: pegar apenas o dia anterior
         return [today - timedelta(days=1)]
 
 def schedule_job(job_func):
     scheduler = BackgroundScheduler(timezone=TIMEZONE)
-    scheduler.add_job(job_func, 'cron', day_of_week='mon-fri', hour=8, minute=0)
-    logger.info("Agendamento configurado: segunda a sexta às 8h.")
+    scheduler.add_job(job_func, 'cron', day_of_week='mon-sat', hour=8, minute=0)
+    logger.info("Agendamento configurado: segunda a sábado às 8h (domingo excluído).")
     scheduler.start()
     return scheduler

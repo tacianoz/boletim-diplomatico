@@ -21,8 +21,8 @@ import re
 def add_background(canvas, doc):
     """Adiciona fundo azul claro ao documento"""
     canvas.saveState()
-    # Azul muito claro para o fundo
-    canvas.setFillColor(HexColor('#f8fbff'))
+    # Azul um pouco mais visível para o fundo
+    canvas.setFillColor(HexColor('#f0f4f8'))
     canvas.rect(0, 0, doc.width + doc.leftMargin + doc.rightMargin, 
                 doc.height + doc.topMargin + doc.bottomMargin, fill=1)
     canvas.restoreState()
@@ -75,41 +75,41 @@ def create_pdf_boletim():
         header_style = ParagraphStyle(
             'Header',
             parent=styles['Normal'],
-            fontSize=11,
+            fontSize=10,
             spaceAfter=0,
             alignment=2,  # Right align
             textColor=HexColor('#4b5563'),
-            fontName='Times-Bold'
+            fontName='Helvetica-Bold'
         )
         
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=20,
+            fontSize=18,
             spaceAfter=15,
             alignment=1,  # Center
-            textColor=HexColor('#1e3a8a'),
-            fontName='Times-Bold'
+            textColor=HexColor('#2d3748'),
+            fontName='Helvetica-Bold'
         )
         
         subtitle_style = ParagraphStyle(
             'CustomSubtitle',
             parent=styles['Heading2'],
-            fontSize=14,
+            fontSize=12,
             spaceAfter=12,
             alignment=1,  # Center
             textColor=HexColor('#374151'),
-            fontName='Times-Roman'
+            fontName='Helvetica'
         )
         
         normal_style = ParagraphStyle(
             'CustomNormal',
             parent=styles['Normal'],
-            fontSize=11,
+            fontSize=9,
             spaceAfter=10,
-            leading=14,
+            leading=11,
             alignment=4,  # Justify
-            fontName='Times-Roman'
+            fontName='Helvetica'
         )
         
         link_style = ParagraphStyle(
@@ -121,18 +121,18 @@ def create_pdf_boletim():
             textColor=HexColor('#0066cc'),
             underline=True,
             alignment=0,  # Left align for links
-            fontName='Times-Roman'
+            fontName='Helvetica'
         )
         
         description_style = ParagraphStyle(
             'Description',
             parent=styles['Normal'],
-            fontSize=10,
+            fontSize=9,
             spaceAfter=25,
-            leading=14,
+            leading=12,
             alignment=1,  # Center
             fontStyle='italic',
-            fontName='Times-Roman'
+            fontName='Helvetica'
         )
         
         section_style = ParagraphStyle(
@@ -141,8 +141,8 @@ def create_pdf_boletim():
             fontSize=13,
             spaceAfter=8,
             spaceBefore=15,
-            textColor=HexColor('#1e40af'),
-            fontName='Times-Bold'
+            textColor=HexColor('#2d3748'),
+            fontName='Helvetica-Bold'
         )
         
         empty_section_style = ParagraphStyle(
@@ -154,21 +154,31 @@ def create_pdf_boletim():
             alignment=1,  # Center
             fontStyle='italic',
             textColor=HexColor('#666666'),
-            fontName='Times-Roman'
+            fontName='Helvetica'
         )
         
-        # Cabeçalho da embaixada (topo direito)
-        story.append(Paragraph("Embaixada do Brasil em Nova Délhi", header_style))
+        # Cabeçalho da embaixada (topo direito) com borda
+        header_with_border = Paragraph(
+            f'<para borderWidth="1" borderColor="#d1d5db" borderPadding="8" backColor="#f9fafb">'
+            f'Embaixada do Brasil em Nova Délhi</para>', 
+            header_style
+        )
+        story.append(header_with_border)
         story.append(Spacer(1, 30))
         
-        # Título principal
-        story.append(Paragraph("Boletim Diplomático", title_style))
+        # Título principal com borda sutil
+        title_with_border = Paragraph(
+            f'<para borderWidth="2" borderColor="#2d3748" borderPadding="12" backColor="#f8fafc">'
+            f'Boletim Diplomático</para>', 
+            title_style
+        )
+        story.append(title_with_border)
         
         # Data formatada em português
         month_names = {
-            1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
-            5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
-            9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+            1: 'janeiro', 2: 'fevereiro', 3: 'março', 4: 'abril',
+            5: 'maio', 6: 'junho', 7: 'julho', 8: 'agosto',
+            9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'
         }
         day = today.day
         month = month_names[today.month]
