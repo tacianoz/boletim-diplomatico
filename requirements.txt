@@ -1,0 +1,13 @@
+requests
+beautifulsoup4
+playwright
+transformers
+torch
+apscheduler
+python-dotenv
+email-validator
+schedule
+pytz
+loguru
+openai
+google-generativeai 
