@@ -13,8 +13,19 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.colors import HexColor
 from reportlab.platypus.flowables import KeepTogether
+from reportlab.platypus.flowables import PageBreak, Spacer
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 import os
 import re
+
+def add_background(canvas, doc):
+    """Adiciona fundo azul claro ao documento"""
+    canvas.saveState()
+    # Azul muito claro para o fundo
+    canvas.setFillColor(HexColor('#f8fbff'))
+    canvas.rect(0, 0, doc.width + doc.leftMargin + doc.rightMargin, 
+                doc.height + doc.topMargin + doc.bottomMargin, fill=1)
+    canvas.restoreState()
 
 def create_pdf_boletim():
     logger.info("=== GERANDO PDF DO BOLETIM DIPLOMÁTICO ===")
@@ -52,18 +63,33 @@ def create_pdf_boletim():
         # Criar PDF
         filename = f"boletim_diplomatico_{today.strftime('%Y%m%d')}.pdf"
         doc = SimpleDocTemplate(filename, pagesize=A4)
+        
+
+        
         story = []
         
         # Estilos
         styles = getSampleStyleSheet()
+        
+        # Estilo para cabeçalho da embaixada
+        header_style = ParagraphStyle(
+            'Header',
+            parent=styles['Normal'],
+            fontSize=11,
+            spaceAfter=0,
+            alignment=2,  # Right align
+            textColor=HexColor('#4b5563'),
+            fontName='Times-Bold'
+        )
+        
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
             fontSize=20,
             spaceAfter=15,
             alignment=1,  # Center
-            textColor=HexColor('#1f4e79'),
-            fontName='Arial-Bold'
+            textColor=HexColor('#1e3a8a'),
+            fontName='Times-Bold'
         )
         
         subtitle_style = ParagraphStyle(
@@ -72,8 +98,8 @@ def create_pdf_boletim():
             fontSize=14,
             spaceAfter=12,
             alignment=1,  # Center
-            textColor=HexColor('#2e5984'),
-            fontName='Arial'
+            textColor=HexColor('#374151'),
+            fontName='Times-Roman'
         )
         
         normal_style = ParagraphStyle(
@@ -83,7 +109,7 @@ def create_pdf_boletim():
             spaceAfter=10,
             leading=14,
             alignment=4,  # Justify
-            fontName='Arial'
+            fontName='Times-Roman'
         )
         
         link_style = ParagraphStyle(
@@ -95,7 +121,7 @@ def create_pdf_boletim():
             textColor=HexColor('#0066cc'),
             underline=True,
             alignment=0,  # Left align for links
-            fontName='Arial'
+            fontName='Times-Roman'
         )
         
         description_style = ParagraphStyle(
@@ -106,7 +132,7 @@ def create_pdf_boletim():
             leading=14,
             alignment=1,  # Center
             fontStyle='italic',
-            fontName='Arial'
+            fontName='Times-Roman'
         )
         
         section_style = ParagraphStyle(
@@ -115,8 +141,8 @@ def create_pdf_boletim():
             fontSize=13,
             spaceAfter=8,
             spaceBefore=15,
-            textColor=HexColor('#2e5984'),
-            fontName='Arial-Bold'
+            textColor=HexColor('#1e40af'),
+            fontName='Times-Bold'
         )
         
         empty_section_style = ParagraphStyle(
@@ -128,20 +154,14 @@ def create_pdf_boletim():
             alignment=1,  # Center
             fontStyle='italic',
             textColor=HexColor('#666666'),
-            fontName='Arial'
+            fontName='Times-Roman'
         )
         
-        footer_style = ParagraphStyle(
-            'Footer',
-            parent=styles['Normal'],
-            fontSize=9,
-            spaceAfter=0,
-            alignment=2,  # Right align
-            textColor=HexColor('#666666'),
-            fontName='Arial'
-        )
+        # Cabeçalho da embaixada (topo direito)
+        story.append(Paragraph("Embaixada do Brasil em Nova Délhi", header_style))
+        story.append(Spacer(1, 30))
         
-        # Cabeçalho
+        # Título principal
         story.append(Paragraph("Boletim Diplomático", title_style))
         
         # Data formatada em português
@@ -153,7 +173,7 @@ def create_pdf_boletim():
         day = today.day
         month = month_names[today.month]
         year = today.year
-        date_str = f"{day} {month} {year}"
+        date_str = f"{day} de {month} de {year}"
         story.append(Paragraph(date_str, subtitle_style))
         
         # Descrição
@@ -173,7 +193,7 @@ def create_pdf_boletim():
                 current_section = line
                 story.append(Paragraph(current_section, section_style))
             elif line == "Nenhum item publicado ontem nesta seção.":
-                story.append(Paragraph(line, empty_section_style))
+                story.append(Paragraph("Nenhum item publicado nesta seção desde o último boletim.", empty_section_style))
             elif re.match(r'\d{2}/\d{2}/\d{4} - \[.*\]\(.*\)', line):
                 # Linha com data e link: "07/08/2025 - [Title](link)"
                 match = re.match(r'(\d{2}/\d{2}/\d{4}) - \[(.*?)\]\((.*?)\)', line)
@@ -192,12 +212,8 @@ def create_pdf_boletim():
                     formatted_line = line
                 story.append(Paragraph(formatted_line, normal_style))
         
-        # Rodapé
-        story.append(Spacer(1, 30))
-        story.append(Paragraph("Embaixada do Brasil em Nova Délhi", footer_style))
-        
-        # Gerar PDF
-        doc.build(story)
+        # Gerar PDF com fundo
+        doc.build(story, onFirstPage=add_background, onLaterPages=add_background)
         logger.info(f"PDF gerado com sucesso: {filename}")
         
         return filename
