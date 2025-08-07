@@ -45,7 +45,7 @@ class Summarizer:
         output = []
         
         # Ordem específica das seções
-        sections = ['Press Releases', 'Speeches & Statements', 'Media Briefings']
+        sections = ['Prime Minister Releases', 'MEA - Press Releases', 'MEA - Speeches & Statements', 'MEA - Media Briefings']
         
         for section in sections:
             output.append(f"{section}")

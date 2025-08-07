@@ -8,9 +8,10 @@ import random
 import re
 
 BASE_URLS = {
-    'Press Releases': 'https://www.mea.gov.in/press-releases.htm?51/Press_Releases',
-    'Speeches & Statements': 'https://www.mea.gov.in/Speeches-Statements.htm?50/Speeches__amp;_Statements',
-    'Media Briefings': 'https://www.mea.gov.in/media-briefings.htm?49/Media_Briefings',
+    'Prime Minister Releases': 'https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1',
+    'MEA - Press Releases': 'https://www.mea.gov.in/press-releases.htm?51/Press_Releases',
+    'MEA - Speeches & Statements': 'https://www.mea.gov.in/Speeches-Statements.htm?50/Speeches__amp;_Statements',
+    'MEA - Media Briefings': 'https://www.mea.gov.in/media-briefings.htm?49/Media_Briefings',
 }
 
 HEADERS = {
@@ -40,6 +41,58 @@ def fetch_page(url):
     except Exception as e:
         logger.error(f"Erro ao acessar {url}: {e}")
         return None
+
+def parse_prime_minister_documents(html: str, tipo: str) -> List[Dict]:
+    """Função específica para fazer parsing da página do Prime Minister"""
+    soup = BeautifulSoup(html, 'html.parser')
+    docs = []
+    
+    # A página do PM usa uma estrutura HTML com <li> e <span class='publishdatesmall'>
+    # Procurar por elementos <li> que contenham links e spans com datas
+    
+    # Procurar por todos os <li> que contenham links
+    list_items = soup.find_all('li')
+    
+    for item in list_items:
+        # Procurar por link dentro do <li>
+        link_elem = item.find('a')
+        if not link_elem:
+            continue
+            
+        # Procurar por span com data
+        date_span = item.find('span', class_='publishdatesmall')
+        if not date_span:
+            continue
+            
+        # Extrair título e link
+        title = link_elem.get_text(strip=True)
+        link = link_elem.get('href')
+        
+        # Corrigir URL se necessário
+        if link and not link.startswith('http'):
+            if link.startswith('/'):
+                link = 'https://www.pib.gov.in' + link
+            else:
+                link = 'https://www.pib.gov.in/' + link
+        
+        # Extrair data do span
+        date_text = date_span.get_text(strip=True)
+        # Remover "Posted on: " e pegar apenas a data
+        if 'Posted on:' in date_text:
+            date_part = date_text.split('Posted on:')[1].strip()
+            date = parse_date_string(date_part)
+        else:
+            continue
+        
+        if title and link and date:
+            docs.append({
+                'tipo': tipo,
+                'title': title,
+                'link': link,
+                'date': date
+            })
+    
+    return docs
 
 def parse_documents(html: str, tipo: str) -> List[Dict]:
     soup = BeautifulSoup(html, 'html.parser')
@@ -207,6 +260,7 @@ def parse_date_string(date_str: str) -> datetime.date:
         return None
     
     date_formats = [
+        '%d %b %Y',       # 06 Aug 2025
         '%B %d, %Y',      # August 06, 2025
         '%B %d %Y',       # August 06 2025
         '%d, %B %Y',      # 06, August 2025
@@ -230,18 +284,18 @@ def get_documents_for_dates(target_dates: List[datetime.date]) -> List[Dict]:
     
     # Seletores específicos para cada seção
     section_selectors = {
-        'Press Releases': [
+        'MEA - Press Releases': [
             'ul.press-releases li',
             'ul.commonListing li',
             'li:has(a[href*="press-releases"])',
             'li:has(a[href*="press"])'
         ],
-        'Speeches & Statements': [
+        'MEA - Speeches & Statements': [
             'ul.commonListing li',
             'li:has(a[href*="Speeches-Statements"])',
             'li:has(a[href*="speech"])'
         ],
-        'Media Briefings': [
+        'MEA - Media Briefings': [
             'ul.commonListing li',
             'li:has(a[href*="media-briefings"])',
             'li:has(a[href*="media"])'
@@ -254,8 +308,13 @@ def get_documents_for_dates(target_dates: List[datetime.date]) -> List[Dict]:
         if not html:
             continue
         
-        # Usar seletores específicos para cada seção
-        docs = parse_documents_with_selectors(html, tipo, section_selectors.get(tipo, ['ul li']))
+        # Usar função específica para Prime Minister Releases
+        if tipo == 'Prime Minister Releases':
+            docs = parse_prime_minister_documents(html, tipo)
+        else:
+            # Usar seletores específicos para cada seção
+            docs = parse_documents_with_selectors(html, tipo, section_selectors.get(tipo, ['ul li']))
+        
         logger.info(f"Encontrados {len(docs)} documentos em {tipo}")
         
         # Filtrar por datas alvo
@@ -406,7 +465,101 @@ def fetch_full_content(doc_link: str) -> str:
     
     soup = BeautifulSoup(html, 'html.parser')
     
-    # Tentar diferentes seletores para o conteúdo principal
+    # Verificar se é uma URL do PIB (Prime Minister)
+    if 'pib.gov.in' in doc_link:
+        # Para URLs do PIB, procurar por frames/iframes primeiro
+        iframes = soup.find_all('iframe')
+        frames = soup.find_all('frame')
+        
+        all_frames = iframes + frames
+        
+        for frame in all_frames:
+            src = frame.get('src')
+            if src:
+                # Construir URL completa do frame
+                if src.startswith('/'):
+                    frame_url = 'https://www.pib.gov.in' + src
+                elif src.startswith('http'):
+                    frame_url = src
+                else:
+                    frame_url = 'https://www.pib.gov.in/' + src
+                
+                # Acessar o conteúdo do frame
+                frame_html = fetch_page(frame_url)
+                if frame_html:
+                    frame_soup = BeautifulSoup(frame_html, 'html.parser')
+                    
+                    # Extrair conteúdo do frame
+                    content_selectors = [
+                        'div.content',
+                        'div.main-content',
+                        'div.article-content',
+                        'div.post-content',
+                        'article',
+                        'div[class*="content"]',
+                        'body'
+                    ]
+                    
+                    for selector in content_selectors:
+                        content_elem = frame_soup.select_one(selector)
+                        if content_elem:
+                            content_text = content_elem.get_text(separator='\n', strip=True)
+                            if len(content_text) > 100:
+                                return content_text
+                    
+                    # Se não encontrou com seletores, pegar todo o texto
+                    all_text = frame_soup.get_text(separator='\n', strip=True)
+                    if len(all_text) > 100:
+                        return all_text
+        
+        # Se não encontrou frames, tentar extrair informações básicas
+        title = ''
+        date = ''
+        
+        # Procurar por título
+        title_selectors = [
+            'h1',
+            'h2',
+            'h3',
+            'div[class*="title"]',
+            'span[class*="title"]'
+        ]
+        
+        for selector in title_selectors:
+            title_elem = soup.select_one(selector)
+            if title_elem:
+                title = title_elem.get_text(strip=True)
+                if title and len(title) > 10:
+                    break
+        
+        # Procurar por data
+        date_selectors = [
+            'span[class*="date"]',
+            'div[class*="date"]',
+            'span[class*="time"]',
+            'div[class*="time"]'
+        ]
+        
+        for selector in date_selectors:
+            date_elem = soup.select_one(selector)
+            if date_elem:
+                date = date_elem.get_text(strip=True)
+                if date and len(date) > 5:
+                    break
+        
+        # Se encontrou título, retornar informações básicas
+        if title:
+            content = f"Prime Minister's Office Release\n\nTitle: {title}\n"
+            if date:
+                content += f"Date: {date}\n"
+            content += f"\nThis is an official release from the Prime Minister's Office of India. The document title indicates this is a {title.lower()}. "
+            content += "The full detailed content is available on the official PIB website but requires JavaScript to access. "
+            content += "This appears to be an official communication or announcement from the Prime Minister's Office."
+            return content
+        else:
+            return "Prime Minister's Office Release - This is an official communication from the Prime Minister's Office of India. The full content requires JavaScript and is available on the official PIB website."
+    
+    # Para outras URLs (MEA), usar a lógica original
     content_selectors = [
         'div.content',
         'div.col-md-9',

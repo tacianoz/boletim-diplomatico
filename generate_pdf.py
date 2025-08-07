@@ -198,8 +198,8 @@ def create_pdf_boletim():
             if not line:
                 continue
                 
-            # Seção principal (ex: "Press Releases")
-            if line in ['Press Releases', 'Speeches & Statements', 'Media Briefings']:
+            # Seção principal (ex: "Prime Minister Releases")
+            if line in ['Prime Minister Releases', 'MEA - Press Releases', 'MEA - Speeches & Statements', 'MEA - Media Briefings']:
                 current_section = line
                 story.append(Paragraph(current_section, section_style))
             elif line == "Nenhum item publicado ontem nesta seção.":

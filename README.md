@@ -5,10 +5,15 @@ Este app Python faz scraping diário de comunicados, discursos e briefings do Mi
 ## 🚀 Funcionalidades
 
 ### 📰 **Scraping Inteligente**
-- Scraping robusto de três seções do site do MEA Índia
+- Scraping robusto de quatro seções oficiais da Índia:
+  - **Prime Minister Releases** (PIB) - com suporte a frames/iframes
+  - **MEA Press Releases** - comunicados oficiais
+  - **MEA Speeches & Statements** - discursos e declarações
+  - **MEA Media Briefings** - briefings para a imprensa
 - Processamento inteligente de datas (segunda-feira pega sábado e domingo)
 - Múltiplos seletores para máxima compatibilidade
 - Tratamento de erros e retry automático
+- Suporte especial para conteúdo em frames (Prime Minister)
 
 ### 🤖 **IA e Processamento**
 - Sumarização com Google Gemini 1.5 Flash
@@ -107,7 +112,7 @@ cp env.example .env
 ### **Execução Manual**
 ```bash
 python generate_pdf.py    # Gera apenas o PDF
-python test_email.py      # Gera PDF e envia por e-mail
+python test_email.py      # Gera PDF e envia por e-mail (teste completo)
 ```
 
 ### **Execução Automática**
@@ -185,7 +190,7 @@ document = {
 
 ### **Testes**
 ```bash
-python test_email.py  # Teste completo de geração e envio
+python test_email.py  # Teste completo: geração de PDF e envio por e-mail
 ```
 
 ## 📄 Licença
