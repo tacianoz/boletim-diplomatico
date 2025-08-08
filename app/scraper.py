@@ -322,7 +322,21 @@ def get_documents_for_dates(target_dates: List[datetime.date]) -> List[Dict]:
             if doc['date'] and doc['date'] in target_dates:
                 all_docs.append(doc)
     
-    return all_docs
+    # Remover duplicatas baseado no título
+    seen_titles = set()
+    unique_docs = []
+    
+    for doc in all_docs:
+        title = doc['title']
+        if title not in seen_titles:
+            seen_titles.add(title)
+            unique_docs.append(doc)
+        else:
+            logger.info(f"Removendo duplicata: {title}")
+    
+    logger.info(f"Documentos após remoção de duplicatas: {len(unique_docs)} (removidos {len(all_docs) - len(unique_docs)})")
+    
+    return unique_docs
 
 def parse_documents_with_selectors(html: str, tipo: str, selectors: List[str]) -> List[Dict]:
     soup = BeautifulSoup(html, 'html.parser')

@@ -29,9 +29,14 @@ def send_email(subject: str, body: str, attachment_path: str = None):
         logger.info(f"Anexo adicionado: {attachment_path}")
     
     try:
-        server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
-        if EMAIL_USE_TLS:
-            server.starttls()
+        # Usar SSL para porta 465, TLS para porta 587
+        if EMAIL_PORT == 465:
+            server = smtplib.SMTP_SSL(EMAIL_HOST, EMAIL_PORT)
+        else:
+            server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
+            if EMAIL_USE_TLS:
+                server.starttls()
+        
         server.login(EMAIL_USER, EMAIL_PASSWORD)
         server.sendmail(EMAIL_FROM, EMAIL_TO.split(','), msg.as_string())
         server.quit()

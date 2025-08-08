@@ -10,4 +10,6 @@ schedule
 pytz
 loguru
 openai
-google-generativeai 
+google-generativeai
+flask
+reportlab 
