@@ -29,7 +29,7 @@ steps:
       - '3600'
       - '--max-instances'
       - '1'
-      - '--set-env-vars'
+      - '--update-env-vars'
       - 'TIMEZONE=Asia/Kolkata'
 
 images:
