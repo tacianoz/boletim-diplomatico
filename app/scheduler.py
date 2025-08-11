@@ -20,7 +20,7 @@ def get_target_dates(today=None):
 
 def schedule_job(job_func):
     scheduler = BackgroundScheduler(timezone=TIMEZONE)
-    scheduler.add_job(job_func, 'cron', day_of_week='mon-sat', hour=8, minute=0)
-    logger.info("Agendamento configurado: segunda a sábado às 8h (domingo excluído).")
+    scheduler.add_job(job_func, 'cron', day_of_week='mon-sat', hour=6, minute=0)
+    logger.info("Agendamento configurado: segunda a sábado às 6h (domingo excluído).")
     scheduler.start()
     return scheduler

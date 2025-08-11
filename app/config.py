@@ -17,6 +17,6 @@ MODEL_NAME = os.getenv('MODEL_NAME')
 # Google Gemini API
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 
-TIMEZONE = os.getenv('TIMEZONE', 'America/Sao_Paulo')
+TIMEZONE = os.getenv('TIMEZONE', 'Asia/Kolkata')
 
 LOG_PATH = os.getenv('LOG_PATH', 'logs/boletim.log')

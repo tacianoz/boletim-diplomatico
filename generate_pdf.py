@@ -31,11 +31,23 @@ def create_pdf_boletim():
     logger.info("=== GERANDO PDF DO BOLETIM DIPLOMÁTICO ===")
     
     try:
-        # Buscar documentos do dia anterior
-        today = date.today()
-        yesterday = today - timedelta(days=1)
-        target_dates = [yesterday]
-        logger.info(f"Buscando documentos para: {yesterday}")
+        # Usar lógica de segunda-feira (sábado + domingo)
+        import pytz
+        tz = pytz.timezone('Asia/Kolkata')
+        today = datetime.now(tz).date()
+        weekday = today.weekday()  # 0=Segunda, 1=Terça, ..., 6=Domingo
+        
+        if weekday == 0:  # Segunda-feira
+            # Buscar sábado e domingo
+            saturday = today - timedelta(days=2)
+            sunday = today - timedelta(days=1)
+            target_dates = [saturday, sunday]
+            logger.info(f"Segunda-feira: buscando sábado ({saturday}) e domingo ({sunday})")
+        else:
+            # Outros dias: buscar apenas o dia anterior
+            yesterday = today - timedelta(days=1)
+            target_dates = [yesterday]
+            logger.info(f"{today.strftime('%A')}: buscando ontem ({yesterday})")
         
         docs = get_documents_for_dates(target_dates)
         logger.info(f"Encontrados {len(docs)} documentos do dia anterior")

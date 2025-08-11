@@ -36,3 +36,4 @@ images:
   - 'gcr.io/$PROJECT_ID/boletim-diplomatico'
 
 timeout: '1200s'
+

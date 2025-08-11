@@ -24,6 +24,7 @@ def home():
         <li><strong>GET /health</strong> - Verificar status do serviço</li>
         <li><strong>POST /generate</strong> - Gerar boletim para hoje</li>
         <li><strong>POST /generate/yesterday</strong> - Gerar boletim para ontem</li>
+        <li><strong>POST /generate/daily</strong> - Gerar boletim diário (com lógica de segunda-feira)</li>
         <li><strong>POST /generate/custom</strong> - Gerar boletim para data específica</li>
     </ul>
     
@@ -65,7 +66,10 @@ def generate_yesterday():
 def generate_daily():
     """Gerar boletim diário com lógica de segunda-feira"""
     try:
-        today = date.today()
+        # Usar fuso horário da Índia
+        import pytz
+        tz = pytz.timezone('Asia/Kolkata')
+        today = datetime.now(tz).date()
         weekday = today.weekday()  # 0=Segunda, 1=Terça, ..., 6=Domingo
         
         if weekday == 0:  # Segunda-feira
