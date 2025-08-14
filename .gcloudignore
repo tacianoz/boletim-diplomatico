@@ -1,0 +1,58 @@
+# Arquivos de desenvolvimento
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Arquivos de teste
+test_*.py
+*_test.py
+
+# Logs
+logs/
+*.log
+
+# Arquivos temporários
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Arquivos de configuração local
+.env
+.env.local
+.env.production
+
+# Arquivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos Git
+.git/
+.gitignore
+
+# Arquivos de documentação
+README.md
+DEPLOY.md
+
+# Arquivos de deploy local
+.dockerignore
+
+# Arquivos PDF gerados (serão recriados no servidor)
+*.pdf
+
+# Arquivos de cache
+.cache/
+.pytest_cache/
+
+# Arquivos de backup
+*.bak
+*.backup

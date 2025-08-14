@@ -78,13 +78,17 @@ def generate_daily():
             sunday = today - timedelta(days=1)
             target_dates = [saturday, sunday]
             logger.info(f"Segunda-feira: buscando sábado ({saturday}) e domingo ({sunday})")
+            
+            # Segunda-feira: gerar boletim + loksabha
+            return generate_combined_report(target_dates)
         else:
             # Outros dias: buscar apenas o dia anterior
             yesterday = today - timedelta(days=1)
             target_dates = [yesterday]
             logger.info(f"{today.strftime('%A')}: buscando ontem ({yesterday})")
-        
-        return generate_boletim(target_dates)
+            
+            # Outros dias: apenas boletim
+            return generate_boletim(target_dates)
     except Exception as e:
         logger.error(f"Erro ao gerar boletim diário: {e}")
         return jsonify({"error": str(e)}), 500
@@ -102,6 +106,114 @@ def generate_custom():
     except Exception as e:
         logger.error(f"Erro ao gerar boletim para data customizada: {e}")
         return jsonify({"error": str(e)}), 500
+
+def generate_combined_report(target_dates):
+    """Função para gerar boletim + loksabha (segunda-feira)"""
+    logger.info(f"Gerando relatório combinado para datas: {target_dates}")
+    
+    pdf_files = []
+    
+    # 1. Gerar PDF do Boletim Diplomático
+    logger.info("1. Gerando PDF do Boletim Diplomático...")
+    try:
+        # Buscar documentos
+        docs = get_documents_for_dates(target_dates)
+        if docs:
+            # Buscar conteúdo completo
+            for i, doc in enumerate(docs):
+                logger.info(f"Processando documento {i+1}/{len(docs)}: {doc['title'][:50]}...")
+                doc['content'] = fetch_full_content(doc['link'])
+            
+            # Gerar resumos
+            logger.info("Gerando resumos com Google Gemini...")
+            summarizer = Summarizer()
+            report = summarizer.compile_report(docs)
+            
+            # Gerar PDF
+            from generate_pdf import create_pdf_boletim
+            boletim_pdf = create_pdf_boletim()
+            if boletim_pdf:
+                pdf_files.append(boletim_pdf)
+                logger.info(f"✅ PDF do Boletim gerado: {boletim_pdf}")
+        else:
+            logger.warning("Nenhum documento encontrado para o boletim")
+    except Exception as e:
+        logger.error(f"❌ Erro ao gerar PDF do Boletim: {e}")
+    
+    # 2. Gerar PDF da Lok Sabha
+    logger.info("2. Gerando PDF da Lok Sabha...")
+    try:
+        from generate_loksabha_pdf import create_loksabha_pdf
+        loksabha_pdf = create_loksabha_pdf()
+        if loksabha_pdf:
+            pdf_files.append(loksabha_pdf)
+            logger.info(f"✅ PDF da Lok Sabha gerado: {loksabha_pdf}")
+    except Exception as e:
+        logger.error(f"❌ Erro ao gerar PDF da Lok Sabha: {e}")
+    
+    # 3. Enviar e-mail com ambos os anexos
+    if pdf_files:
+        try:
+            # Calcular período da Lok Sabha
+            from app.loksabha_scheduler import get_loksabha_week_dates
+            start_date, end_date = get_loksabha_week_dates()
+            
+            # Formatar período para o e-mail
+            start_day = start_date.day
+            end_day = end_date.day
+            month = start_date.strftime('%B')
+            year = start_date.year
+            
+            if start_day == end_day:
+                loksabha_period = f"{start_day} de {month} de {year}"
+            else:
+                loksabha_period = f"{start_day} a {end_day} de {month} de {year}"
+            
+            email_subject = f"Boletim Diplomático + Relatório Lok Sabha - {target_dates[0].strftime('%d/%m/%Y')}"
+            
+            email_body = f"""Prezados/as colegas,
+
+Segue o relatório combinado com:
+
+1. Boletim Diplomático de {target_dates[0].strftime('%d/%m/%Y')} (resumo dos comunicados, discursos e briefings do MEA)
+2. Relatório Semanal Lok Sabha de {loksabha_period} (resumo das questions & answers da Lok Sabha ao MEA)
+
+Atenciosamente,
+Taciano S. Zimmermann"""
+            
+            # Enviar e-mail com múltiplos anexos
+            from app.emailer import send_email
+            send_email(
+                subject=email_subject,
+                body=email_body,
+                attachments=pdf_files
+            )
+            
+            return jsonify({
+                "success": True,
+                "message": "Relatório combinado gerado e enviado com sucesso!",
+                "dates": [str(d) for d in target_dates],
+                "pdf_files": pdf_files,
+                "email_sent": True
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao enviar e-mail: {e}")
+            return jsonify({
+                "success": True,
+                "message": "Relatório combinado gerado com sucesso, mas erro no envio de e-mail",
+                "dates": [str(d) for d in target_dates],
+                "pdf_files": pdf_files,
+                "email_sent": False,
+                "email_error": str(e)
+            })
+    else:
+        return jsonify({
+            "success": False,
+            "message": "Nenhum PDF foi gerado com sucesso",
+            "dates": [str(d) for d in target_dates],
+            "pdf_files": []
+        })
 
 def generate_boletim(target_dates):
     """Função principal para gerar o boletim"""
