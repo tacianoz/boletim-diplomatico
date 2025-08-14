@@ -54,7 +54,7 @@ Este app Python faz scraping diário de comunicados, discursos e briefings do Mi
 ## 📁 Estrutura do Projeto
 
 ```
-boletim-diplomatico+loksabha/
+boletim-diplomatico/
 ├── app/
 │   ├── __init__.py              # Pacote principal
 │   ├── config.py                # Configurações e variáveis de ambiente
@@ -81,8 +81,8 @@ boletim-diplomatico+loksabha/
 
 ### 1. **Clone o repositório**
 ```bash
-git clone https://github.com/tacianoz/boletim-diplomatico+loksabha.git
-cd boletim-diplomatico+loksabha
+git clone https://github.com/tacianoz/boletim-diplomatico.git
+cd boletim-diplomatico
 ```
 
 ### 2. **Configure o ambiente virtual**
@@ -254,4 +254,4 @@ Para contribuições, entre em contato com a equipe de desenvolvimento.
 
 **Desenvolvido por:** Taciano S. Zimmermann  
 **Instituição:** Embaixada do Brasil em Nova Délhi  
-**Repositório:** https://github.com/tacianoz/boletim-diplomatico+loksabha 
+**Repositório:** https://github.com/tacianoz/boletim-diplomatico 
