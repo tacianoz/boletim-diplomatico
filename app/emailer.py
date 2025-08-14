@@ -7,15 +7,31 @@ from app.config import EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD, EMAIL
 from app.logger import logger
 import os
 
-def send_email(subject: str, body: str, attachment_path: str = None):
+def send_email(subject: str, body: str, attachment_path: str = None, attachments: list = None):
     msg = MIMEMultipart()
     msg['From'] = EMAIL_FROM
     msg['To'] = EMAIL_TO
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain', 'utf-8'))
     
-    # Adicionar anexo se fornecido
-    if attachment_path and os.path.exists(attachment_path):
+    # Adicionar anexos se fornecidos
+    if attachments:
+        # Lista de anexos
+        for attachment_path in attachments:
+            if os.path.exists(attachment_path):
+                with open(attachment_path, 'rb') as attachment:
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(attachment.read())
+                
+                encoders.encode_base64(part)
+                part.add_header(
+                    'Content-Disposition',
+                    f'attachment; filename= {os.path.basename(attachment_path)}'
+                )
+                msg.attach(part)
+                logger.info(f"Anexo adicionado: {attachment_path}")
+    elif attachment_path and os.path.exists(attachment_path):
+        # Anexo único (compatibilidade com versão anterior)
         with open(attachment_path, 'rb') as attachment:
             part = MIMEBase('application', 'octet-stream')
             part.set_payload(attachment.read())

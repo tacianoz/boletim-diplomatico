@@ -1,10 +1,10 @@
-# Boletim Diplomático – Scraper e Resumidor Automático
+# Boletim Diplomático + Lok Sabha – Scraper e Resumidor Automático
 
-Este app Python faz scraping diário de comunicados, discursos e briefings do Ministério de Relações Exteriores da Índia, resume com Google Gemini AI e gera PDFs elegantes para envio automático por e-mail.
+Este app Python faz scraping diário de comunicados, discursos e briefings do Ministério de Relações Exteriores da Índia, além de um relatório semanal das questions & answers da Lok Sabha, resume com Google Gemini AI e gera PDFs elegantes para envio automático por e-mail.
 
 ## 🚀 Funcionalidades
 
-### 📰 **Scraping Inteligente**
+### 📰 **Boletim Diplomático Diário**
 - Scraping robusto de quatro seções oficiais da Índia:
   - **Prime Minister Releases** (PIB) - com suporte a frames/iframes
   - **MEA Press Releases** - comunicados oficiais
@@ -15,11 +15,19 @@ Este app Python faz scraping diário de comunicados, discursos e briefings do Mi
 - Tratamento de erros e retry automático
 - Suporte especial para conteúdo em frames (Prime Minister)
 
+### 🏛️ **Relatório Semanal Lok Sabha**
+- Scraping semanal das questions & answers da Lok Sabha ao MEA
+- Busca questions da semana anterior (segunda a domingo)
+- Resumos específicos focados em posições diplomáticas e políticas
+- Execução automática toda segunda-feira às 7h
+- PDF separado com formato similar ao boletim diplomático
+
 ### 🤖 **IA e Processamento**
 - Sumarização com Google Gemini 1.5 Flash
 - Extração de temas e informações diplomáticas
 - Processamento em inglês com resumos concisos
 - Tratamento de documentos longos
+- Prompts específicos para questions & answers da Lok Sabha
 
 ### 📄 **Geração de PDF**
 - Layout profissional com fundo azul claro
@@ -27,15 +35,18 @@ Este app Python faz scraping diário de comunicados, discursos e briefings do Mi
 - Cores sóbrias adequadas para documentos diplomáticos
 - Bordas elegantes no cabeçalho e título
 - Espaçamento otimizado e hierarquia visual clara
+- **Dois PDFs separados:** Boletim Diplomático e Relatório Lok Sabha
 
 ### 📧 **Sistema de E-mail**
 - Envio automático via Gmail SMTP
 - Anexos PDF automáticos
 - Texto profissional personalizado
 - Suporte a múltiplos destinatários
+- E-mails separados para cada tipo de relatório
 
 ### ⏰ **Agendamento Inteligente**
-- Execução automática segunda a sábado às 8h
+- **Segunda-feira às 6h:** Boletim Diplomático (sábado e domingo) + Relatório Lok Sabha (semana anterior)
+- **Terça a Sábado às 6h:** Apenas Boletim Diplomático (dia anterior)
 - Domingo excluído (sem execução)
 - Lógica de datas otimizada para fins de semana
 - Logging completo de execução
@@ -43,29 +54,35 @@ Este app Python faz scraping diário de comunicados, discursos e briefings do Mi
 ## 📁 Estrutura do Projeto
 
 ```
-boletim_diplomatico/
+boletim-diplomatico+loksabha/
 ├── app/
-│   ├── __init__.py          # Pacote principal
-│   ├── config.py            # Configurações e variáveis de ambiente
-│   ├── scraper.py           # Scraping robusto do MEA Índia
-│   ├── summarizer.py        # Sumarização com Google Gemini
-│   ├── emailer.py           # Sistema de envio de e-mails
-│   ├── scheduler.py         # Agendamento inteligente
-│   └── logger.py            # Sistema de logs
-├── generate_pdf.py          # Geração de PDFs elegantes
-├── test_email.py            # Script de teste completo
-├── main.py                  # Execução principal
-├── requirements.txt         # Dependências Python
-├── env.example              # Exemplo de configuração
-└── README.md               # Esta documentação
+│   ├── __init__.py              # Pacote principal
+│   ├── config.py                # Configurações e variáveis de ambiente
+│   ├── scraper.py               # Scraping do boletim diplomático
+│   ├── loksabha_scraper.py      # Scraping específico da Lok Sabha
+│   ├── summarizer.py            # Sumarização do boletim diplomático
+│   ├── loksabha_summarizer.py   # Sumarização específica da Lok Sabha
+│   ├── emailer.py               # Sistema de envio de e-mails
+│   ├── scheduler.py             # Agendamento do boletim diplomático
+│   ├── loksabha_scheduler.py    # Agendamento específico da Lok Sabha
+│   └── logger.py                # Sistema de logs
+├── generate_pdf.py              # Geração de PDF do boletim diplomático
+├── generate_loksabha_pdf.py     # Geração de PDF da Lok Sabha
+├── main.py                      # Execução do boletim diplomático
+├── loksabha_main.py             # Execução da Lok Sabha
+├── combined_main.py             # Execução combinada de ambos
+├── test_email.py                # Script de teste completo
+├── requirements.txt             # Dependências Python
+├── env.example                  # Exemplo de configuração
+└── README.md                    # Esta documentação
 ```
 
 ## ⚙️ Configuração
 
 ### 1. **Clone o repositório**
 ```bash
-git clone https://github.com/tacianoz/boletim-diplomatico.git
-cd boletim_diplomatico
+git clone https://github.com/tacianoz/boletim-diplomatico+loksabha.git
+cd boletim-diplomatico+loksabha
 ```
 
 ### 2. **Configure o ambiente virtual**
@@ -111,18 +128,23 @@ cp env.example .env
 
 ### **Execução Manual**
 ```bash
-python generate_pdf.py    # Gera apenas o PDF
-python test_email.py      # Gera PDF e envia por e-mail (teste completo)
+python generate_pdf.py                  # Gera PDF do boletim diplomático
+python generate_loksabha_pdf.py         # Gera PDF da Lok Sabha
+python generate_and_send_combined.py    # Gera ambos os PDFs e envia no mesmo e-mail
+python test_pdfs.py                     # Testa geração de ambos os PDFs
+python test_combined_pdfs.py            # Testa sistema combinado completo
 ```
 
 ### **Execução Automática**
 ```bash
-python main.py            # Inicia o agendamento automático
+python main.py                      # Apenas boletim diplomático
+python loksabha_main.py             # Apenas relatório Lok Sabha (agendamento separado às 7h)
+python combined_main.py             # Ambos os serviços (recomendado - segunda 6h: ambos, terça-sábado 6h: apenas boletim)
 ```
 
 ### **Agendamento**
-- **Segunda-feira:** 8h - Busca documentos de sábado e domingo
-- **Terça a Sábado:** 8h - Busca documentos do dia anterior
+- **Segunda-feira às 6h:** Boletim Diplomático (sábado e domingo) + Relatório Lok Sabha (semana anterior)
+- **Terça a Sábado às 6h:** Apenas Boletim Diplomático (dia anterior)
 - **Domingo:** Não executa automaticamente
 
 ## 📊 Logs e Monitoramento
@@ -132,7 +154,7 @@ python main.py            # Inicia o agendamento automático
 - **Níveis:** INFO, ERROR, DEBUG
 - **Formato:** Timestamp + nível + módulo + mensagem
 
-## 🎨 Características do PDF
+## 🎨 Características dos PDFs
 
 ### **Layout Profissional**
 - Fundo azul claro elegante (`#f0f4f8`)
@@ -140,18 +162,16 @@ python main.py            # Inicia o agendamento automático
 - Cores sóbrias para contexto diplomático
 - Bordas sutis no cabeçalho e título
 
-### **Hierarquia Visual**
-- **Título principal:** 18pt, cinza escuro
-- **Data:** 12pt, formato "dd de mês de ano"
-- **Cabeçalho:** 10pt, "Embaixada do Brasil em Nova Délhi"
-- **Resumos:** 9pt, espaçamento simples
-- **Descrição:** 9pt, itálico
+### **Boletim Diplomático**
+- **Título:** "Boletim Diplomático"
+- **Conteúdo:** Resumos diários de notas à imprensa, discursos, comunicados e media briefings
+- **Organização:** Por seções (Press Releases, Speeches, Media Briefings)
 
-### **Conteúdo**
-- Resumos em inglês dos documentos originais
-- Links clicáveis para documentos completos
-- Organização por seções (Press Releases, Speeches, Media Briefings)
-- Mensagens para seções sem conteúdo
+### **Relatório Lok Sabha**
+- **Título:** "Relatório Semanal - Lok Sabha"
+- **Conteúdo:** Resumos semanais das questions & answers da Lok Sabha ao MEA
+- **Organização:** Por data, com separadores de dia da semana
+- **Foco:** Posições diplomáticas e políticas do governo indiano
 
 ## 🔧 Tecnologias Utilizadas
 
@@ -163,8 +183,9 @@ python main.py            # Inicia o agendamento automático
 - **SMTP** - Envio de e-mails
 - **Loguru** - Sistema de logs
 
-## 📝 Exemplo de E-mail
+## 📝 Exemplos de E-mail
 
+### **Boletim Diplomático**
 ```
 Prezados/as colegas,
 
@@ -174,9 +195,23 @@ Atenciosamente,
 Taciano S. Zimmermann
 ```
 
+### **Relatório Combinado (Segunda-feira)**
+```
+Prezados/as colegas,
+
+Segue em anexo:
+
+1. Boletim Diplomático de 12/08/2025 (resumo dos comunicados, discursos e briefings do MEA)
+2. Relatório Semanal Lok Sabha de 05/08/2025 a 11/08/2025 (resumo das questions & answers da Lok Sabha ao MEA)
+
+Atenciosamente,
+Taciano S. Zimmermann
+Embaixada do Brasil em Nova Délhi
+```
+
 ## 🛠️ Desenvolvimento
 
-### **Estrutura de Dados**
+### **Estrutura de Dados - Boletim Diplomático**
 ```python
 document = {
     'tipo': 'Press Releases',
@@ -188,9 +223,23 @@ document = {
 }
 ```
 
+### **Estrutura de Dados - Lok Sabha**
+```python
+question = {
+    'title': 'QUESTION NO - 292 RELATION WITH WEST ASIAN COUNTRIES',
+    'link': 'https://www.mea.gov.in/lok-sabha.htm?dtl/39984/...',
+    'date': datetime.date(2025, 8, 8),
+    'content': 'Conteúdo completo da question & answer',
+    'summary': 'Resumo gerado pela IA'
+}
+```
+
 ### **Testes**
 ```bash
-python test_email.py  # Teste completo: geração de PDF e envio por e-mail
+python test_pdfs.py          # Teste de geração de PDFs
+python test_loksabha_only.py # Teste específico da Lok Sabha (recomendado)
+python test_loksabha.py      # Teste completo da funcionalidade Lok Sabha
+python test_combined.py      # Teste combinado de ambas as funcionalidades
 ```
 
 ## 📄 Licença
@@ -205,4 +254,4 @@ Para contribuições, entre em contato com a equipe de desenvolvimento.
 
 **Desenvolvido por:** Taciano S. Zimmermann  
 **Instituição:** Embaixada do Brasil em Nova Délhi  
-**Repositório:** https://github.com/tacianoz/boletim-diplomatico 
+**Repositório:** https://github.com/tacianoz/boletim-diplomatico+loksabha 
