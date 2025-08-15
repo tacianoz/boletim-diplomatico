@@ -34,8 +34,9 @@ def generate_and_send_combined():
             pdf_files.append(loksabha_pdf)
             logger.info(f"✅ PDF da Lok Sabha gerado: {loksabha_pdf}")
         else:
-            logger.error("❌ Erro ao gerar PDF da Lok Sabha")
-            return False
+            logger.info("ℹ️ Nenhum documento da Lok Sabha encontrado para a semana anterior")
+            logger.info("ℹ️ Enviando apenas o Boletim Diplomático")
+            # Não retorna False, apenas continua sem o PDF da Lok Sabha
         
         # 3. Preparar e-mail
         today = datetime.now().date()
@@ -61,16 +62,26 @@ def generate_and_send_combined():
         else:
             loksabha_period = f"{start_day} a {end_day} de {month} de {year}"
         
-        # Assunto do e-mail
-        email_subject = f"Boletim Diplomático + Relatório Lok Sabha - {today.strftime('%d/%m/%Y')}"
-        
-        # Corpo do e-mail
-        email_body = f"""Prezados/as colegas,
+        # Assunto do e-mail (dinâmico baseado nos PDFs gerados)
+        if len(pdf_files) == 2:
+            email_subject = f"Boletim Diplomático + Relatório Lok Sabha - {today.strftime('%d/%m/%Y')}"
+            email_body = f"""Prezados/as colegas,
 
 Segue em anexo:
 
 1. Boletim Diplomático de {today.strftime('%d/%m/%Y')} (resumo dos comunicados, discursos e briefings do MEA)
 2. Relatório Semanal Lok Sabha de {loksabha_period} (resumo das questions & answers da Lok Sabha ao MEA)
+
+Atenciosamente,
+Taciano S. Zimmermann
+Embaixada do Brasil em Nova Délhi"""
+        else:
+            email_subject = f"Boletim Diplomático - {today.strftime('%d/%m/%Y')}"
+            email_body = f"""Prezados/as colegas,
+
+Segue o Boletim Diplomático de {today.strftime('%d/%m/%Y')}.
+
+Nota: Não foram encontrados documentos da Lok Sabha para a semana anterior ({loksabha_period}).
 
 Atenciosamente,
 Taciano S. Zimmermann
@@ -92,6 +103,11 @@ Embaixada do Brasil em Nova Délhi"""
         for pdf in pdf_files:
             print(f"   - {pdf}")
         
+        if len(pdf_files) == 1:
+            print("ℹ️ Apenas o Boletim Diplomático foi enviado (sem documentos da Lok Sabha)")
+        else:
+            print("✅ Ambos os relatórios foram enviados")
+        
         return True
         
     except Exception as e:
@@ -107,6 +123,6 @@ if __name__ == "__main__":
     success = generate_and_send_combined()
     if success:
         print("\n🎉 Processo concluído com sucesso!")
-        print("📧 Ambos os PDFs foram gerados e enviados no mesmo e-mail")
+        print("📧 PDFs foram gerados e enviados conforme disponibilidade")
     else:
         print("\n❌ Erro no processo. Verifique os logs.")
