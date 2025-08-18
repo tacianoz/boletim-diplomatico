@@ -45,25 +45,21 @@ def generate_and_send_combined():
         loksabha_end = today - timedelta(days=1)  # Domingo
         loksabha_start = loksabha_end - timedelta(days=6)  # Segunda-feira
         
+        # Calcular período do boletim (sábado e domingo)
+        boletim_saturday = today - timedelta(days=2)  # Sábado
+        boletim_sunday = today - timedelta(days=1)    # Domingo
+        target_dates = [boletim_saturday, boletim_sunday]
+        
         # Formatar período da Lok Sabha
-        if loksabha_start.month == loksabha_end.month:
-            if loksabha_start.year == loksabha_end.year:
-                loksabha_period = f"{loksabha_start.strftime('%d/%m/%Y')} a {loksabha_end.strftime('%d/%m/%Y')}"
-            else:
-                loksabha_period = f"{loksabha_start.strftime('%d/%m/%Y')} a {loksabha_end.strftime('%d/%m/%Y')}"
-        else:
-            loksabha_period = f"{loksabha_start.strftime('%d/%m/%Y')} a {loksabha_end.strftime('%d/%m/%Y')}"
+        loksabha_period = f"{loksabha_start.strftime('%d/%m/%Y')} a {loksabha_end.strftime('%d/%m/%Y')}"
+        
+        # Formatar período do boletim (sábado e domingo)
+        boletim_period = f"{boletim_saturday.strftime('%d/%m/%Y')} e {boletim_sunday.strftime('%d/%m/%Y')}"
         
         # Assunto do e-mail (dinâmico baseado nos PDFs gerados)
         if len(pdf_files) == 2:
             # Caso 1: Ambos os PDFs (boletim + loksabha) - Segunda-feira
             email_subject = f"Boletim Diplomático + Relatório Lok Sabha - {today.strftime('%d/%m/%Y')}"
-            
-            # Formatar período do boletim (sábado e domingo)
-            if len(target_dates) == 2:
-                boletim_period = f"{target_dates[0].strftime('%d/%m/%Y')} e {target_dates[1].strftime('%d/%m/%Y')}"
-            else:
-                boletim_period = target_dates[0].strftime('%d/%m/%Y')
             
             email_body = f"""Prezados/as colegas,
 
@@ -78,11 +74,14 @@ Taciano S. Zimmermann"""
             # Caso 2: Apenas boletim (sem loksabha) - Segunda-feira
             email_subject = f"Boletim Diplomático - {today.strftime('%d/%m/%Y')}"
             
-            # Formatar período do boletim (sábado e domingo)
-            if len(target_dates) == 2:
-                boletim_period = f"{target_dates[0].strftime('%d/%m/%Y')} e {target_dates[1].strftime('%d/%m/%Y')}"
-            else:
-                boletim_period = target_dates[0].strftime('%d/%m/%Y')
+            email_body = f"""Prezados/as colegas,
+
+Segue o Boletim Diplomático referente às publicações de {boletim_period}.
+
+Nota: Não foram encontrados documentos da Lok Sabha para a semana anterior ({loksabha_period}).
+
+Atenciosamente,
+Taciano S. Zimmermann"""
             
             email_body = f"""Prezados/as colegas,
 
