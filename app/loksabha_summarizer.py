@@ -14,7 +14,8 @@ class LokSabhaSummarizer:
     def summarize_question(self, question: Dict) -> str:
         """Sumariza uma question & answer específica"""
         try:
-            prompt = f"""Summarize the following Lok Sabha Question & Answer in 3-4 sentences in English. 
+            prompt = f"""Summarize the following Lok Sabha Question & Answer in English. 
+            Use 3-4 sentences for shorter documents and 4-5 sentences for longer, more complex documents.
             Focus on:
             1. The main question being asked
             2. The key points of the government's response
@@ -23,6 +24,11 @@ class LokSabhaSummarizer:
             
             Be faithful to the original language and use quotation marks for official statements, 
             titles, or specific terminology. This is for diplomatic reporting purposes.
+            
+            IMPORTANT: If, in the final summary, you encounter any text in Hindi or other non-English languages, 
+            keep the original text in quotation marks and add the English translation in parentheses 
+            with the note "tradução automática". For example:
+            "सभी देशवासियों को जन्माष्टमी की असीम शुभकामनाएं।" (tradução automática: "Heartiest greetings to all countrymen on Janmashtami.")
             
             Question & Answer Content: {question['content'][:4000]}
             

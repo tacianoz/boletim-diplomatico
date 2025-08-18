@@ -41,51 +41,57 @@ def generate_and_send_combined():
         # 3. Preparar e-mail
         today = datetime.now().date()
         
-        # Calcular período da Lok Sabha para o e-mail
-        days_since_monday = today.weekday()
-        last_monday = today - timedelta(days=days_since_monday + 7)
-        last_sunday = last_monday + timedelta(days=6)
+        # Calcular período da Lok Sabha (semana anterior)
+        loksabha_end = today - timedelta(days=1)  # Domingo
+        loksabha_start = loksabha_end - timedelta(days=6)  # Segunda-feira
         
-        month_names = {
-            1: 'janeiro', 2: 'fevereiro', 3: 'março', 4: 'abril',
-            5: 'maio', 6: 'junho', 7: 'julho', 8: 'agosto',
-            9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'
-        }
-        
-        start_day = last_monday.day
-        end_day = last_sunday.day
-        month = month_names[last_monday.month]
-        year = last_monday.year
-        
-        if start_day == end_day:
-            loksabha_period = f"{start_day} de {month} de {year}"
+        # Formatar período da Lok Sabha
+        if loksabha_start.month == loksabha_end.month:
+            if loksabha_start.year == loksabha_end.year:
+                loksabha_period = f"{loksabha_start.strftime('%d/%m/%Y')} a {loksabha_end.strftime('%d/%m/%Y')}"
+            else:
+                loksabha_period = f"{loksabha_start.strftime('%d/%m/%Y')} a {loksabha_end.strftime('%d/%m/%Y')}"
         else:
-            loksabha_period = f"{start_day} a {end_day} de {month} de {year}"
+            loksabha_period = f"{loksabha_start.strftime('%d/%m/%Y')} a {loksabha_end.strftime('%d/%m/%Y')}"
         
         # Assunto do e-mail (dinâmico baseado nos PDFs gerados)
         if len(pdf_files) == 2:
+            # Caso 1: Ambos os PDFs (boletim + loksabha) - Segunda-feira
             email_subject = f"Boletim Diplomático + Relatório Lok Sabha - {today.strftime('%d/%m/%Y')}"
+            
+            # Formatar período do boletim (sábado e domingo)
+            if len(target_dates) == 2:
+                boletim_period = f"{target_dates[0].strftime('%d/%m/%Y')} e {target_dates[1].strftime('%d/%m/%Y')}"
+            else:
+                boletim_period = target_dates[0].strftime('%d/%m/%Y')
+            
             email_body = f"""Prezados/as colegas,
 
 Segue em anexo:
 
-1. Boletim Diplomático de {today.strftime('%d/%m/%Y')} (resumo dos comunicados, discursos e briefings do MEA)
-2. Relatório Semanal Lok Sabha de {loksabha_period} (resumo das questions & answers da Lok Sabha ao MEA)
+1. Boletim Diplomático referente às publicações de {boletim_period}
+2. Relatório Semanal Lok Sabha de {loksabha_period}
 
 Atenciosamente,
-Taciano S. Zimmermann
-Embaixada do Brasil em Nova Délhi"""
+Taciano S. Zimmermann"""
         else:
+            # Caso 2: Apenas boletim (sem loksabha) - Segunda-feira
             email_subject = f"Boletim Diplomático - {today.strftime('%d/%m/%Y')}"
+            
+            # Formatar período do boletim (sábado e domingo)
+            if len(target_dates) == 2:
+                boletim_period = f"{target_dates[0].strftime('%d/%m/%Y')} e {target_dates[1].strftime('%d/%m/%Y')}"
+            else:
+                boletim_period = target_dates[0].strftime('%d/%m/%Y')
+            
             email_body = f"""Prezados/as colegas,
 
-Segue o Boletim Diplomático de {today.strftime('%d/%m/%Y')}.
+Segue o Boletim Diplomático referente às publicações de {boletim_period}.
 
 Nota: Não foram encontrados documentos da Lok Sabha para a semana anterior ({loksabha_period}).
 
 Atenciosamente,
-Taciano S. Zimmermann
-Embaixada do Brasil em Nova Délhi"""
+Taciano S. Zimmermann"""
         
         # 4. Enviar e-mail com ambos os PDFs
         logger.info("3. Enviando e-mail com ambos os PDFs...")

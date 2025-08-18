@@ -14,9 +14,15 @@ class Summarizer:
 
     def summarize_document(self, doc: Dict) -> str:
         try:
-            prompt = f"""Summarize the following official document in 2-3 sentences in English. 
+            prompt = f"""Summarize the following official document in English. 
+            Use 2-3 sentences for shorter documents and 4-5 sentences for longer, more complex documents.
             Be faithful to the original language and use quotation marks for official statements, 
             titles, or specific terminology. Focus on the key diplomatic information and official positions.
+            
+            IMPORTANT: If, in the final summary, you encounter any text in Hindi or other non-English languages, 
+            keep the original text in quotation marks and add the English translation in parentheses 
+            with the note "tradução automática". For example:
+            "सभी देशवासियों को जन्माष्टमी की असीम शुभकामनाएं।" (tradução automática: "Heartiest greetings to all countrymen on Janmashtami.")
             
             Document: {doc['content'][:4000]}
             

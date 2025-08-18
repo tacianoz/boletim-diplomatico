@@ -154,29 +154,40 @@ def generate_combined_report(target_dates):
     # 3. Enviar e-mail com ambos os anexos
     if pdf_files:
         try:
-            # Calcular período da Lok Sabha
-            from app.loksabha_scheduler import get_loksabha_week_dates
-            start_date, end_date = get_loksabha_week_dates()
+            # Calcular período da Lok Sabha para o e-mail
+            loksabha_end = datetime.now().date() - timedelta(days=1)  # Domingo
+            loksabha_start = loksabha_end - timedelta(days=6)  # Segunda-feira
             
-            # Formatar período para o e-mail
-            start_day = start_date.day
-            end_day = end_date.day
-            month = start_date.strftime('%B')
-            year = start_date.year
+            # Formatar período da Lok Sabha
+            loksabha_period = f"{loksabha_start.strftime('%d/%m/%Y')} a {loksabha_end.strftime('%d/%m/%Y')}"
             
-            if start_day == end_day:
-                loksabha_period = f"{start_day} de {month} de {year}"
+            # Formatar período do boletim
+            if len(target_dates) == 2:
+                boletim_period = f"{target_dates[0].strftime('%d/%m/%Y')} e {target_dates[1].strftime('%d/%m/%Y')}"
             else:
-                loksabha_period = f"{start_day} a {end_day} de {month} de {year}"
+                boletim_period = target_dates[0].strftime('%d/%m/%Y')
             
-            email_subject = f"Boletim Diplomático + Relatório Lok Sabha - {target_dates[0].strftime('%d/%m/%Y')}"
-            
-            email_body = f"""Prezados/as colegas,
+            # Gerar texto do e-mail baseado no número de PDFs
+            if len(pdf_files) == 2:
+                # Caso 1: Ambos os PDFs (boletim + loksabha)
+                email_subject = f"Boletim Diplomático + Relatório Lok Sabha - {datetime.now().strftime('%d/%m/%Y')}"
+                email_body = f"""Prezados/as colegas,
 
 Segue o relatório combinado com:
 
-1. Boletim Diplomático de {target_dates[0].strftime('%d/%m/%Y')} (resumo dos comunicados, discursos e briefings do MEA)
-2. Relatório Semanal Lok Sabha de {loksabha_period} (resumo das questions & answers da Lok Sabha ao MEA)
+1. Boletim Diplomático referente às publicações de {boletim_period}
+2. Relatório Semanal Lok Sabha de {loksabha_period}
+
+Atenciosamente,
+Taciano S. Zimmermann"""
+            else:
+                # Caso 2: Apenas boletim (sem loksabha)
+                email_subject = f"Boletim Diplomático - {datetime.now().strftime('%d/%m/%Y')}"
+                email_body = f"""Prezados/as colegas,
+
+Segue o Boletim Diplomático referente às publicações de {boletim_period}.
+
+Nota: Não foram encontrados documentos da Lok Sabha para a semana anterior ({loksabha_period}).
 
 Atenciosamente,
 Taciano S. Zimmermann"""
@@ -244,15 +255,21 @@ def generate_boletim(target_dates):
     
     # Enviar e-mail
     try:
+        # Formatar período do boletim
+        if len(target_dates) == 2:
+            boletim_period = f"{target_dates[0].strftime('%d/%m/%Y')} e {target_dates[1].strftime('%d/%m/%Y')}"
+        else:
+            boletim_period = target_dates[0].strftime('%d/%m/%Y')
+        
         email_body = f"""Prezados/as colegas,
 
-Segue o Boletim Diplomático de {target_dates[0].strftime('%d/%m/%Y')}.
+Segue o Boletim Diplomático referente às publicações de {boletim_period}.
 
 Atenciosamente,
 Taciano S. Zimmermann"""
         
         send_email(
-            subject=f"Boletim Diplomático - {target_dates[0].strftime('%d/%m/%Y')}",
+            subject=f"Boletim Diplomático - {boletim_period}",
             body=email_body,
             attachment_path=pdf_file
         )

@@ -18,6 +18,9 @@ from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 import os
 import re
 
+# Importar gerenciador de fontes Unicode
+from app.font_manager import UNICODE_FONT, UNICODE_FONT_BOLD
+
 def add_background(canvas, doc):
     """Adiciona fundo azul claro ao documento"""
     canvas.saveState()
@@ -91,7 +94,7 @@ def create_pdf_boletim():
             spaceAfter=0,
             alignment=2,  # Right align
             textColor=HexColor('#4b5563'),
-            fontName='Helvetica-Bold'
+            fontName=UNICODE_FONT_BOLD
         )
         
         title_style = ParagraphStyle(
@@ -101,7 +104,7 @@ def create_pdf_boletim():
             spaceAfter=15,
             alignment=1,  # Center
             textColor=HexColor('#2d3748'),
-            fontName='Helvetica-Bold'
+            fontName=UNICODE_FONT_BOLD
         )
         
         subtitle_style = ParagraphStyle(
@@ -111,7 +114,7 @@ def create_pdf_boletim():
             spaceAfter=12,
             alignment=1,  # Center
             textColor=HexColor('#374151'),
-            fontName='Helvetica'
+            fontName=UNICODE_FONT
         )
         
         normal_style = ParagraphStyle(
@@ -121,7 +124,7 @@ def create_pdf_boletim():
             spaceAfter=10,
             leading=11,
             alignment=4,  # Justify
-            fontName='Helvetica'
+            fontName=UNICODE_FONT
         )
         
         link_style = ParagraphStyle(
@@ -133,7 +136,7 @@ def create_pdf_boletim():
             textColor=HexColor('#0066cc'),
             underline=True,
             alignment=0,  # Left align for links
-            fontName='Helvetica'
+            fontName=UNICODE_FONT
         )
         
         description_style = ParagraphStyle(
@@ -144,7 +147,7 @@ def create_pdf_boletim():
             leading=12,
             alignment=1,  # Center
             fontStyle='italic',
-            fontName='Helvetica'
+            fontName=UNICODE_FONT
         )
         
         section_style = ParagraphStyle(
@@ -154,7 +157,7 @@ def create_pdf_boletim():
             spaceAfter=8,
             spaceBefore=15,
             textColor=HexColor('#2d3748'),
-            fontName='Helvetica-Bold'
+            fontName=UNICODE_FONT_BOLD
         )
         
         empty_section_style = ParagraphStyle(
@@ -166,7 +169,7 @@ def create_pdf_boletim():
             alignment=1,  # Center
             fontStyle='italic',
             textColor=HexColor('#666666'),
-            fontName='Helvetica'
+            fontName=UNICODE_FONT
         )
         
         # Cabeçalho da embaixada (topo direito) com borda

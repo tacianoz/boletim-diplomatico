@@ -19,30 +19,35 @@ Este app Python faz scraping diário de comunicados, discursos e briefings do Mi
 - Scraping semanal das questions & answers da Lok Sabha ao MEA
 - Busca questions da semana anterior (segunda a domingo)
 - Resumos específicos focados em posições diplomáticas e políticas
-- Execução automática toda segunda-feira às 7h
+- Execução automática toda segunda-feira às 6h
 - PDF separado com formato similar ao boletim diplomático
 
-### 🤖 **IA e Processamento**
+### 🤖 **IA e Processamento Inteligente**
 - Sumarização com Google Gemini 1.5 Flash
+- **IA inteligente:** Decide automaticamente se usar 2-3 ou 4-5 frases baseado no conteúdo
+- **Tradução automática de Hindi:** Detecta e traduz texto Hindi automaticamente
 - Extração de temas e informações diplomáticas
 - Processamento em inglês com resumos concisos
-- Tratamento de documentos longos
 - Prompts específicos para questions & answers da Lok Sabha
 
-### 📄 **Geração de PDF**
+### 📄 **Geração de PDF com Suporte Unicode**
 - Layout profissional com fundo azul claro
-- Fonte Helvetica moderna e legível
+- **Suporte completo a fontes Unicode:** Hindi e outros caracteres especiais
+- Fonte Arial Unicode (fallback para Helvetica)
 - Cores sóbrias adequadas para documentos diplomáticos
 - Bordas elegantes no cabeçalho e título
 - Espaçamento otimizado e hierarquia visual clara
 - **Dois PDFs separados:** Boletim Diplomático e Relatório Lok Sabha
 
-### 📧 **Sistema de E-mail**
+### 📧 **Sistema de E-mail Dinâmico**
 - Envio automático via Gmail SMTP
+- **E-mails inteligentes:** Texto dinâmico baseado no conteúdo disponível
+- **Segunda-feira com Lok Sabha:** E-mail combinado com ambos os PDFs
+- **Segunda-feira sem Lok Sabha:** Apenas boletim com nota explicativa
+- **Outros dias:** Boletim diplomático normal
 - Anexos PDF automáticos
-- Texto profissional personalizado
 - Suporte a múltiplos destinatários
-- E-mails separados para cada tipo de relatório
+- Formatação de datas consistente (dd/mm/yyyy)
 
 ### ⏰ **Agendamento Inteligente**
 - **Segunda-feira às 6h:** Boletim Diplomático (sábado e domingo) + Relatório Lok Sabha (semana anterior)
@@ -50,6 +55,26 @@ Este app Python faz scraping diário de comunicados, discursos e briefings do Mi
 - Domingo excluído (sem execução)
 - Lógica de datas otimizada para fins de semana
 - Logging completo de execução
+
+## 🆕 **Melhorias Recentes**
+
+### 🌐 **Suporte a Fontes Unicode**
+- **Detecção automática:** Sistema encontra fontes Unicode disponíveis no sistema
+- **Suporte a Hindi:** Texto Hindi aparece corretamente no PDF (não mais quadrados)
+- **Fallback inteligente:** Arial Unicode → DejaVu → Helvetica
+- **Multi-plataforma:** Funciona em Linux, macOS e Windows
+
+### 🧠 **IA Mais Inteligente**
+- **Decisão automática:** IA decide se usar 2-3 ou 4-5 frases baseado no conteúdo
+- **Tradução automática:** Detecta e traduz Hindi automaticamente via prompt
+- **Contexto preservado:** Mantém o texto original + tradução
+- **Sem regex:** Lógica simplificada, IA faz todo o trabalho
+
+### 📧 **E-mails Dinâmicos**
+- **Texto inteligente:** Adapta-se automaticamente ao conteúdo disponível
+- **Datas consistentes:** Formato dd/mm/yyyy em todo o sistema
+- **Períodos claros:** "referente às publicações de" para maior clareza
+- **Fallback elegante:** Nota explicativa quando Lok Sabha não tem conteúdo
 
 ## 📁 Estrutura do Projeto
 
