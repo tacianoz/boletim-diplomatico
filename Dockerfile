@@ -21,16 +21,9 @@ RUN apt-get update && apt-get install -y \
     fonts-knda \
     fonts-mlym \
     fonts-orya \
-    fonts-punj \
     fonts-taml \
     fonts-telu \
-    fonts-kacst \
-    fonts-kacst-one \
-    fonts-khmeros-core \
     fonts-lao \
-    fonts-lklug-sinhala \
-    fonts-sil-abyssinica \
-    fonts-sil-padauk \
     fonts-thai-tlwg \
     fonts-tibetan-machine \
     fonts-arphic-ukai \
