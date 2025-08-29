@@ -140,4 +140,4 @@ boletim_diplomatico_*.pdf
 
 # OS
 .DS_Store
-Thumbs.db 
+Thumbs.db .env.backup
