@@ -19,10 +19,16 @@ class Summarizer:
             Be faithful to the original language and use quotation marks for official statements, 
             titles, or specific terminology. Focus on the key diplomatic information and official positions.
             
-            IMPORTANT: If, in the final summary, you encounter any text in Hindi or other non-English languages, 
-            keep the original text in quotation marks and add the English translation in parentheses 
-            with the note "tradução automática". For example:
-            "सभी देशवासियों को जन्माष्टमी की असीम शुभकामनाएं।" (tradução automática: "Heartiest greetings to all countrymen on Janmashtami.")
+            LANGUAGE POLICY FOR FINAL SUMMARY:
+            - Write the summary ONLY in English
+            - Exceptionally, you may include very important phrases in Hindi if they are official statements or quotes
+            - For any other languages (Malayalam, Tamil, Bengali, etc.), show ONLY the English translation with "tradução automática" note
+            - Do NOT include original text in other languages in the final summary
+            
+            Examples:
+            - Hindi (allowed): "सभी देशवासियों को जन्माष्टमी की असीम शुभकामनाएं।" (tradução automática: "Heartiest greetings to all countrymen on Janmashtami.")
+            - Malayalam (not allowed in original): "Tributes to Mahatma Ayyankali on his Jayanti. He is remembered as an icon of social justice and empowerment." (tradução automática do malayalam)
+            - Tamil (not allowed in original): "The government's commitment to inclusive development..." (tradução automática do tamil)
             
             Document: {doc['content'][:4000]}
             

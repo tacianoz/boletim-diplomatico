@@ -1,9 +1,44 @@
 FROM python:3.11-slim
 
-# Instalar dependências do sistema
+# Instalar dependências do sistema e fontes Unicode completas
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    fonts-dejavu \
+    fonts-dejavu-core \
+    fonts-dejavu-extra \
+    fonts-noto \
+    fonts-noto-core \
+    fonts-noto-cjk \
+    fonts-noto-color-emoji \
+    fonts-liberation \
+    fonts-liberation2 \
+    fonts-indic \
+    fonts-beng \
+    fonts-deva \
+    fonts-gujr \
+    fonts-guru \
+    fonts-knda \
+    fonts-mlym \
+    fonts-orya \
+    fonts-punj \
+    fonts-taml \
+    fonts-telu \
+    fonts-kacst \
+    fonts-kacst-one \
+    fonts-khmeros-core \
+    fonts-lao \
+    fonts-lklug-sinhala \
+    fonts-sil-abyssinica \
+    fonts-sil-padauk \
+    fonts-thai-tlwg \
+    fonts-tibetan-machine \
+    fonts-arphic-ukai \
+    fonts-arphic-uming \
+    fonts-ipafont-gothic \
+    fonts-ipafont-mincho \
+    fonts-unfonts-core \
+    fonts-unfonts-extra \
     && rm -rf /var/lib/apt/lists/*
 
 # Definir diretório de trabalho

@@ -19,7 +19,7 @@ import os
 import re
 
 # Importar gerenciador de fontes Unicode
-from app.font_manager import UNICODE_FONT, UNICODE_FONT_BOLD
+from app.font_manager import UNICODE_FONT, UNICODE_FONT_BOLD, get_appropriate_font, contains_unicode_chars
 
 def add_background(canvas, doc):
     """Adiciona fundo azul claro ao documento"""
@@ -86,6 +86,18 @@ def create_pdf_boletim():
         # Estilos
         styles = getSampleStyleSheet()
         
+        # Função para criar estilo dinâmico baseado no conteúdo
+        def create_dynamic_style(base_style, text, is_bold=False):
+            """Cria estilo com fonte apropriada baseada no conteúdo"""
+            font_name = get_appropriate_font(text, is_bold)
+            
+            # Retornar estilo com fonte apropriada
+            return ParagraphStyle(
+                f'Dynamic_{is_bold}',
+                parent=base_style,
+                fontName=font_name
+            )
+        
         # Estilo para cabeçalho da embaixada
         header_style = ParagraphStyle(
             'Header',
@@ -94,7 +106,7 @@ def create_pdf_boletim():
             spaceAfter=0,
             alignment=2,  # Right align
             textColor=HexColor('#4b5563'),
-            fontName=UNICODE_FONT_BOLD
+            fontName='Helvetica-Bold'  # Texto em inglês, usar Helvetica-Bold
         )
         
         title_style = ParagraphStyle(
@@ -104,7 +116,7 @@ def create_pdf_boletim():
             spaceAfter=15,
             alignment=1,  # Center
             textColor=HexColor('#2d3748'),
-            fontName=UNICODE_FONT_BOLD
+            fontName='Helvetica-Bold'  # Texto em inglês, usar Helvetica-Bold
         )
         
         subtitle_style = ParagraphStyle(
@@ -157,7 +169,7 @@ def create_pdf_boletim():
             spaceAfter=8,
             spaceBefore=15,
             textColor=HexColor('#2d3748'),
-            fontName=UNICODE_FONT_BOLD
+            fontName='Helvetica-Bold'  # Texto em inglês, usar Helvetica-Bold
         )
         
         empty_section_style = ParagraphStyle(
@@ -229,13 +241,16 @@ def create_pdf_boletim():
                     link_para = Paragraph(f'<link href="{link}">{link_text}</link>', link_style)
                     story.append(link_para)
             else:
-                # Resumo ou texto normal - adicionar hífens para justificação
+                # Resumo ou texto normal - usar estilo dinâmico baseado no conteúdo
                 if line and not line.startswith('•'):
                     # Adicionar hífen no início se não for uma lista
                     formatted_line = f"— {line}"
                 else:
                     formatted_line = line
-                story.append(Paragraph(formatted_line, normal_style))
+                
+                # Criar estilo dinâmico baseado no conteúdo
+                dynamic_style = create_dynamic_style(normal_style, formatted_line, is_bold=False)
+                story.append(Paragraph(formatted_line, dynamic_style))
         
         # Gerar PDF com fundo
         doc.build(story, onFirstPage=add_background, onLaterPages=add_background)

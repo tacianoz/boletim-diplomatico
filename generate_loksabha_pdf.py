@@ -19,7 +19,7 @@ import os
 import re
 
 # Importar gerenciador de fontes Unicode
-from app.font_manager import UNICODE_FONT, UNICODE_FONT_BOLD
+from app.font_manager import UNICODE_FONT, UNICODE_FONT_BOLD, get_appropriate_font, contains_unicode_chars
 
 def add_background(canvas, doc):
     """Adiciona fundo azul claro ao documento"""
@@ -61,6 +61,18 @@ def create_loksabha_pdf():
         # Estilos
         styles = getSampleStyleSheet()
         
+        # Função para criar estilo dinâmico baseado no conteúdo
+        def create_dynamic_style(base_style, text, is_bold=False):
+            """Cria estilo com fonte apropriada baseada no conteúdo"""
+            font_name = get_appropriate_font(text, is_bold)
+            
+            # Retornar estilo com fonte apropriada
+            return ParagraphStyle(
+                f'Dynamic_{is_bold}',
+                parent=base_style,
+                fontName=font_name
+            )
+        
         # Estilo para cabeçalho da embaixada
         header_style = ParagraphStyle(
             'Header',
@@ -69,7 +81,7 @@ def create_loksabha_pdf():
             spaceAfter=0,
             alignment=2,  # Right align
             textColor=HexColor('#4b5563'),
-            fontName=UNICODE_FONT_BOLD
+            fontName='Helvetica-Bold'  # Texto em inglês, usar Helvetica-Bold
         )
         
         title_style = ParagraphStyle(
@@ -79,7 +91,7 @@ def create_loksabha_pdf():
             spaceAfter=15,
             alignment=1,  # Center
             textColor=HexColor('#2d3748'),
-            fontName=UNICODE_FONT_BOLD
+            fontName='Helvetica-Bold'  # Texto em inglês, usar Helvetica-Bold
         )
         
         subtitle_style = ParagraphStyle(
@@ -132,7 +144,7 @@ def create_loksabha_pdf():
             spaceAfter=8,
             spaceBefore=15,
             textColor=HexColor('#2d3748'),
-            fontName=UNICODE_FONT_BOLD
+            fontName='Helvetica-Bold'  # Texto em inglês, usar Helvetica-Bold
         )
         
         date_header_style = ParagraphStyle(
@@ -142,7 +154,7 @@ def create_loksabha_pdf():
             spaceAfter=6,
             spaceBefore=12,
             textColor=HexColor('#1f2937'),
-            fontName=UNICODE_FONT_BOLD
+            fontName='Helvetica-Bold'  # Texto em inglês, usar Helvetica-Bold
         )
         
         # Cabeçalho da embaixada (topo direito) com borda

@@ -65,7 +65,7 @@ def generate_and_send_combined():
 
 Segue em anexo:
 
-1. Boletim Diplomático referente às publicações de {boletim_period}
+1. Boletim Diplomático de {today.strftime('%d/%m/%Y')}
 2. Relatório Semanal Lok Sabha de {loksabha_period}
 
 Atenciosamente,
@@ -76,18 +76,9 @@ Taciano S. Zimmermann"""
             
             email_body = f"""Prezados/as colegas,
 
-Segue o Boletim Diplomático referente às publicações de {boletim_period}.
+Segue o Boletim Diplomático de {today.strftime('%d/%m/%Y')}.
 
-Nota: Não foram encontrados documentos da Lok Sabha para a semana anterior ({loksabha_period}).
-
-Atenciosamente,
-Taciano S. Zimmermann"""
-            
-            email_body = f"""Prezados/as colegas,
-
-Segue o Boletim Diplomático referente às publicações de {boletim_period}.
-
-Nota: Não foram encontrados documentos da Lok Sabha para a semana anterior ({loksabha_period}).
+Não foram encontrados documentos da Lok Sabha para a semana anterior ({loksabha_period}).
 
 Atenciosamente,
 Taciano S. Zimmermann"""
