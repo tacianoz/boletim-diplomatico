@@ -261,21 +261,15 @@ def generate_boletim(target_dates):
         else:
             boletim_period = target_dates[0].strftime('%d/%m/%Y')
         
-        # Usar fuso horário correto (Asia/Kolkata)
-        from datetime import datetime
-        import pytz
-        tz = pytz.timezone('Asia/Kolkata')
-        today = datetime.now(tz).date()
-        
         email_body = f"""Prezados/as colegas,
 
-Segue o Boletim Diplomático de {today.strftime('%d/%m/%Y')}.
+Segue o Boletim Diplomático de {datetime.now().strftime('%d/%m/%Y')}.
 
 Atenciosamente,
 Taciano S. Zimmermann"""
         
         send_email(
-            subject=f"Boletim Diplomático - {today.strftime('%d/%m/%Y')}",
+            subject=f"Boletim Diplomático - {datetime.now().strftime('%d/%m/%Y')}",
             body=email_body,
             attachment_path=pdf_file
         )
