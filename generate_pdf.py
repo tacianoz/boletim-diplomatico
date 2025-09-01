@@ -50,7 +50,7 @@ def create_pdf_boletim():
             # Outros dias: buscar apenas o dia anterior
             yesterday = today - timedelta(days=1)
             target_dates = [yesterday]
-            logger.info(f"{today.strftime('%A')}: buscando ontem ({yesterday})")
+            logger.info(f"{today.strftime('%A')}: buscando dia anterior ({yesterday})")
         
         docs = get_documents_for_dates(target_dates)
         logger.info(f"Encontrados {len(docs)} documentos do dia anterior")
@@ -77,7 +77,14 @@ def create_pdf_boletim():
         
         # Criar PDF
         filename = f"boletim_diplomatico_{today.strftime('%Y%m%d')}.pdf"
-        doc = SimpleDocTemplate(filename, pagesize=A4)
+        doc = SimpleDocTemplate(
+            filename, 
+            pagesize=A4,
+            topMargin=0.5*inch,  # Diminuir margem superior (era padrão ~1 inch)
+            leftMargin=0.75*inch,
+            rightMargin=0.75*inch,
+            bottomMargin=0.75*inch
+        )
         
 
         
@@ -132,9 +139,9 @@ def create_pdf_boletim():
         normal_style = ParagraphStyle(
             'CustomNormal',
             parent=styles['Normal'],
-            fontSize=9,
+            fontSize=11,  # Aumentado de 9 para 11 (era 9)
             spaceAfter=10,
-            leading=11,
+            leading=13,   # Aumentado de 11 para 13 para manter proporção
             alignment=4,  # Justify
             fontName=UNICODE_FONT
         )
@@ -214,7 +221,7 @@ def create_pdf_boletim():
         story.append(Paragraph(date_str, subtitle_style))
         
         # Descrição
-        story.append(Paragraph("Resumo diário de notas à imprensa, discursos, comunicados e \"media briefings\" da chancelaria indiana.", description_style))
+        story.append(Paragraph("Resumo diário de comunicados diplomáticos do governo indiano.", description_style))
         
         # Processar o relatório
         lines = report.split('\n')
@@ -225,24 +232,45 @@ def create_pdf_boletim():
             if not line:
                 continue
                 
+            # Debug: log da linha sendo processada
+            logger.info(f"Processando linha: {line[:100]}...")
+                
             # Seção principal (ex: "Prime Minister Releases")
-            if line in ['Prime Minister Releases', 'MEA - Press Releases', 'MEA - Speeches & Statements', 'MEA - Media Briefings']:
+            if line in ['Prime Minister Releases', 'MEA - Press Releases', 'MEA - Speeches & Statements', 'MEA - Media Briefings', 'UN Statements']:
                 current_section = line
+                logger.info(f"Aplicando section_style para: {line}")
                 story.append(Paragraph(current_section, section_style))
-            elif line == "Nenhum item publicado ontem nesta seção.":
+            elif line == "Nenhum item publicado nesta seção desde o último boletim.":
                 story.append(Paragraph("Nenhum item publicado nesta seção desde o último boletim.", empty_section_style))
-            elif re.match(r'\d{2}/\d{2}/\d{4} - \[.*\]\(.*\)', line):
-                # Linha com data e link: "07/08/2025 - [Title](link)"
-                match = re.match(r'(\d{2}/\d{2}/\d{4}) - \[(.*?)\]\((.*?)\)', line)
+            elif re.match(r'\d{2}/\d{2}/\d{4}.*\[.*\]\(.*\)', line):
+                logger.info(f"Match encontrado para link: {line}")
+                # Linha com data e link: "07/08/2025 - [Title](link)" ou "07/08/2025 - UNGA - [Title](link)"
+                match = re.match(r'(\d{2}/\d{2}/\d{4})(?: - (UNGA|UNSC))? - \[(.*?)\]\((.*?)\)', line)
                 if match:
-                    date_str, title, link = match.groups()
+                    date_str, org, title, link = match.groups()
+                    logger.info(f"Regex groups: date={date_str}, org={org}, title={title[:50]}..., link={link[:50]}...")
                     # Criar link clicável
-                    link_text = f'{date_str} - {title}'
+                    if org:
+                        link_text = f'{date_str} - {org} - {title}'
+                    else:
+                        link_text = f'{date_str} - {title}'
+                    # Usar link_style diretamente para garantir consistência
                     link_para = Paragraph(f'<link href="{link}">{link_text}</link>', link_style)
                     story.append(link_para)
+                else:
+                    logger.warning(f"Regex não capturou grupos para: {line}")
+                    # Tentar regex mais simples para debug
+                    simple_match = re.match(r'(\d{2}/\d{2}/\d{4}) - (.*?) - \[(.*?)\]\((.*?)\)', line)
+                    if simple_match:
+                        logger.info(f"Simple regex match: {simple_match.groups()}")
+                    else:
+                        logger.warning(f"Nenhum regex funcionou para: {line}")
             else:
                 # Resumo ou texto normal - usar estilo dinâmico baseado no conteúdo
-                if line and not line.startswith('•'):
+                if line.startswith('SPEAKER:'):
+                    # Linha do autor - remover o prefixo SPEAKER: e não adicionar hífen
+                    formatted_line = line.replace('SPEAKER: ', '')
+                elif line and not line.startswith('•'):
                     # Adicionar hífen no início se não for uma lista
                     formatted_line = f"— {line}"
                 else:

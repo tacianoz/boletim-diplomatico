@@ -54,7 +54,14 @@ def create_loksabha_pdf():
         
         # Criar PDF
         filename = f"loksabha_weekly_{last_monday.strftime('%Y%m%d')}_{last_sunday.strftime('%Y%m%d')}.pdf"
-        doc = SimpleDocTemplate(filename, pagesize=A4)
+        doc = SimpleDocTemplate(
+            filename, 
+            pagesize=A4,
+            topMargin=0.5*inch,  # Diminuir margem superior (era padrão ~1 inch)
+            leftMargin=0.75*inch,
+            rightMargin=0.75*inch,
+            bottomMargin=0.75*inch
+        )
         
         story = []
         
@@ -107,9 +114,9 @@ def create_loksabha_pdf():
         normal_style = ParagraphStyle(
             'CustomNormal',
             parent=styles['Normal'],
-            fontSize=9,
+            fontSize=11,  # Aumentado de 9 para 11 (era 9)
             spaceAfter=10,
-            leading=11,
+            leading=13,   # Aumentado de 11 para 13 para manter proporção
             alignment=4,  # Justify
             fontName=UNICODE_FONT
         )

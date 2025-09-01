@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Dict
 from app.logger import logger
 import time
@@ -42,15 +42,13 @@ def fetch_page(url):
         logger.error(f"Erro ao acessar {url}: {e}")
         return None
 
-def parse_prime_minister_documents(html: str, tipo: str) -> List[Dict]:
+def parse_prime_minister_documents(html: str, tipo: str, target_dates: List[date] = None) -> List[Dict]:
     """Função específica para fazer parsing da página do Prime Minister"""
     soup = BeautifulSoup(html, 'html.parser')
     docs = []
     
-    # A página do PM usa uma estrutura HTML com <li> e <span class='publishdatesmall'>
-    # Procurar por elementos <li> que contenham links e spans com datas
-    
-    # Procurar por todos os <li> que contenham links
+    # O site do PM usa uma estrutura HTML diferente - vamos tentar múltiplos seletores
+    # Primeiro, tentar a estrutura antiga com publishdatesmall
     list_items = soup.find_all('li')
     
     for item in list_items:
@@ -59,11 +57,38 @@ def parse_prime_minister_documents(html: str, tipo: str) -> List[Dict]:
         if not link_elem:
             continue
             
-        # Procurar por span com data
+        # Tentar diferentes seletores de data
+        date = None
+        
+        # 1. Tentar span com publishdatesmall (estrutura antiga)
         date_span = item.find('span', class_='publishdatesmall')
-        if not date_span:
-            continue
-            
+        if date_span:
+            date_text = date_span.get_text(strip=True)
+            if 'Posted on:' in date_text:
+                date_part = date_text.split('Posted on:')[1].strip()
+                date = parse_date_string(date_part)
+        
+        # 2. Tentar span com fa-calendar (estrutura nova)
+        if not date:
+            calendar_span = item.find('span', class_='fa fa-calendar')
+            if calendar_span:
+                parent_p = calendar_span.find_parent('p')
+                if parent_p:
+                    date_text = parent_p.get_text(strip=True)
+                    date_text = date_text.replace('fa-calendar', '').strip()
+                    date = parse_date_string(date_text)
+        
+        # 3. Tentar outros seletores de data
+        if not date:
+            date_selectors = ['span.date', 'span.time', 'div.date', 'div.time']
+            for selector in date_selectors:
+                date_tag = item.select_one(selector)
+                if date_tag:
+                    date_str = date_tag.get_text(strip=True)
+                    date = parse_date_string(date_str)
+                    if date:
+                        break
+        
         # Extrair título e link
         title = link_elem.get_text(strip=True)
         link = link_elem.get('href')
@@ -75,15 +100,6 @@ def parse_prime_minister_documents(html: str, tipo: str) -> List[Dict]:
             else:
                 link = 'https://www.pib.gov.in/' + link
         
-        # Extrair data do span
-        date_text = date_span.get_text(strip=True)
-        # Remover "Posted on: " e pegar apenas a data
-        if 'Posted on:' in date_text:
-            date_part = date_text.split('Posted on:')[1].strip()
-            date = parse_date_string(date_part)
-        else:
-            continue
-        
         if title and link and date:
             docs.append({
                 'tipo': tipo,
@@ -93,6 +109,163 @@ def parse_prime_minister_documents(html: str, tipo: str) -> List[Dict]:
             })
     
     return docs
+
+def fetch_prime_minister_with_month_selection(target_dates: List[date]) -> List[Dict]:
+    """Função para buscar documentos do PM com seleção de mês"""
+    import requests
+    
+    # Determinar o mês correto baseado nas datas alvo
+    if not target_dates:
+        return []
+    
+    # Pegar o mês da primeira data alvo
+    target_month = target_dates[0].month
+    target_year = target_dates[0].year
+    
+    # Mapear mês para valor do dropdown
+    month_mapping = {
+        1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6,
+        7: 7, 8: 8, 9: 9, 10: 10, 11: 11, 12: 12
+    }
+    
+    month_value = month_mapping.get(target_month, 1)
+    
+    # URL base do PM
+    base_url = 'https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1'
+    
+    try:
+        # Primeiro, fazer GET para obter o ViewState e outros campos necessários
+        session = requests.Session()
+        response = session.get(base_url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Extrair campos necessários para o POST
+        viewstate = soup.find('input', {'name': '__VIEWSTATE'})['value'] if soup.find('input', {'name': '__VIEWSTATE'}) else ''
+        viewstategenerator = soup.find('input', {'name': '__VIEWSTATEGENERATOR'})['value'] if soup.find('input', {'name': '__VIEWSTATEGENERATOR'}) else ''
+        eventvalidation = soup.find('input', {'name': '__EVENTVALIDATION'})['value'] if soup.find('input', {'name': '__EVENTVALIDATION'}) else ''
+        
+        # Log dos campos extraídos
+        logger.info(f"ViewState extraído: {viewstate[:50]}...")
+        logger.info(f"ViewStateGenerator extraído: {viewstategenerator}")
+        logger.info(f"EventValidation extraído: {eventvalidation[:50]}...")
+        
+        # Verificar se o mês atual é setembro
+        current_month_select = soup.find('select', {'id': 'ContentPlaceHolder1_ddlMonth'})
+        if current_month_select:
+            selected_option = current_month_select.find('option', selected=True)
+            if selected_option:
+                logger.info(f"Mês atual selecionado: {selected_option.text} (valor: {selected_option['value']})")
+            else:
+                logger.warning("Nenhuma opção de mês está selecionada")
+        else:
+            logger.error("Dropdown de mês não encontrado")
+        
+        # Dados para o POST request
+        post_data = {
+            '__VIEWSTATE': viewstate,
+            '__VIEWSTATEGENERATOR': viewstategenerator,
+            '__EVENTVALIDATION': eventvalidation,
+            'ctl00$ContentPlaceHolder1$ddlMonth': str(month_value),
+            '__EVENTTARGET': 'ctl00$ContentPlaceHolder1$ddlMonth',
+            '__EVENTARGUMENT': ''
+        }
+        
+        # Log dos dados do POST
+        logger.info(f"Dados do POST: {post_data}")
+        logger.info(f"URL do POST: {base_url}")
+        logger.info(f"Valor do mês selecionado: {month_value} (August)")
+        
+        # Log dos dados do POST para debug
+        logger.info(f"POST data: {post_data}")
+        logger.info(f"Target month: {target_month} -> month_value: {month_value}")
+        
+        # Fazer POST para selecionar o mês
+        response = session.post(base_url, data=post_data)
+        
+        # Log da resposta para debug
+        logger.info(f"POST response status: {response.status_code}")
+        logger.info(f"POST response content length: {len(response.text)}")
+        
+        # Verificar se o POST funcionou - procurar por indicadores de sucesso
+        if "August" in response.text:
+            logger.info("✅ Seleção de mês funcionou - encontrou referências a agosto")
+        else:
+            logger.warning("⚠️ Seleção de mês pode não ter funcionado")
+            # Log mais detalhado para debug
+            logger.info(f"Conteúdo da resposta (primeiros 500 chars): {response.text[:500]}")
+            logger.info(f"Conteúdo da resposta (últimos 500 chars): {response.text[-500:]}")
+            
+            # Verificar se há algum erro na resposta
+            if "error" in response.text.lower() or "exception" in response.text.lower():
+                logger.error("❌ Erro detectado na resposta do site")
+            
+            # Verificar se o mês selecionado ainda está como "September"
+            if "September" in response.text and "August" not in response.text:
+                logger.error("❌ Site ainda mostra setembro - seleção de mês falhou")
+        
+        # Agora fazer parsing dos documentos com o mês correto
+        docs = parse_prime_minister_documents(response.text, 'Prime Minister Releases', target_dates)
+        
+        # Se não encontrou documentos, tentar abordagens alternativas
+        if not docs:
+            logger.info("Tentando abordagens alternativas para buscar documentos de agosto")
+            
+            # Abordagem 1: URL com parâmetros de mês/ano
+            alternative_urls = [
+                f"https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1&month={month_value}&year={target_year}",
+                f"https://www.pib.gov.in/PMContents/PMContents.aspx?month={month_value}&year={target_year}",
+                f"https://www.pib.gov.in/PMContents/PMContents.aspx?ddlMonth={month_value}&ddlYear={target_year}"
+            ]
+            
+            for i, alt_url in enumerate(alternative_urls, 1):
+                logger.info(f"Tentativa {i}: {alt_url}")
+                try:
+                    alt_response = session.get(alt_url)
+                    if alt_response.status_code == 200:
+                        alt_docs = parse_prime_minister_documents(alt_response.text, 'Prime Minister Releases', target_dates)
+                        if alt_docs:
+                            logger.info(f"✅ Abordagem {i} funcionou: {len(alt_docs)} documentos encontrados")
+                            docs = alt_docs
+                            break
+                        else:
+                            logger.info(f"Abordagem {i} retornou HTML mas 0 documentos")
+                    else:
+                        logger.warning(f"Abordagem {i} retornou status {alt_response.status_code}")
+                except Exception as e:
+                    logger.error(f"Erro na abordagem {i}: {e}")
+            
+            # Abordagem 2: Tentar arquivo/archive do site
+            if not docs:
+                logger.info("Tentando buscar no arquivo do site...")
+                archive_urls = [
+                    "https://www.pib.gov.in/archive2/",
+                    "https://archive.pib.gov.in/",
+                    "https://www.pib.gov.in/PMContents/archive.aspx"
+                ]
+                
+                for archive_url in archive_urls:
+                    try:
+                        archive_response = session.get(archive_url)
+                        if archive_response.status_code == 200:
+                            logger.info(f"Arquivo acessível: {archive_url}")
+                            # Aqui poderíamos implementar busca no arquivo
+                            break
+                    except Exception as e:
+                        logger.error(f"Erro ao acessar arquivo {archive_url}: {e}")
+        
+        return docs
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar documentos do PM com seleção de mês: {e}")
+        # Fallback: tentar busca normal sem HTML (vazio)
+        return parse_prime_minister_documents("", 'Prime Minister Releases', target_dates)
+
+def should_use_month_selection() -> bool:
+    """Verifica se deve usar seleção de mês (apenas no primeiro dia do mês)"""
+    import pytz
+    tz = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(tz).date()
+    return today.day == 1
 
 def parse_documents(html: str, tipo: str) -> List[Dict]:
     soup = BeautifulSoup(html, 'html.parser')
@@ -310,7 +483,17 @@ def get_documents_for_dates(target_dates: List[datetime.date]) -> List[Dict]:
         
         # Usar função específica para Prime Minister Releases
         if tipo == 'Prime Minister Releases':
-            docs = parse_prime_minister_documents(html, tipo)
+            # No primeiro dia do mês, usar seleção de mês para buscar documentos do mês anterior
+            month_selection_result = should_use_month_selection()
+            logger.info(f"Verificação de seleção de mês: {month_selection_result}")
+            
+            if month_selection_result:
+                logger.info("Primeiro dia do mês: usando seleção de mês para buscar documentos do mês anterior")
+                docs = fetch_prime_minister_with_month_selection(target_dates)
+            else:
+                logger.info("Não é primeiro dia do mês: usando busca normal")
+                # Nos outros dias, usar busca normal
+                docs = parse_prime_minister_documents(html, tipo)
         else:
             # Usar seletores específicos para cada seção
             docs = parse_documents_with_selectors(html, tipo, section_selectors.get(tipo, ['ul li']))
@@ -326,13 +509,19 @@ def get_documents_for_dates(target_dates: List[datetime.date]) -> List[Dict]:
     seen_titles = set()
     unique_docs = []
     
+    # Debug: verificar todos os documentos antes da remoção de duplicatas
+    logger.info(f"Documentos antes da remoção de duplicatas:")
+    for i, doc in enumerate(all_docs):
+        logger.info(f"  {i+1}. Tipo: '{doc.get('tipo', 'SEM_TIPO')}', Título: {doc.get('title', 'SEM_TITULO')[:50]}...")
+    
     for doc in all_docs:
         title = doc['title']
         if title not in seen_titles:
             seen_titles.add(title)
             unique_docs.append(doc)
+            logger.info(f"✅ Adicionando documento único: {doc.get('tipo', 'SEM_TIPO')} - {title[:50]}...")
         else:
-            logger.info(f"Removendo duplicata: {title}")
+            logger.info(f"❌ Removendo duplicata: {title[:50]}... (tipo: {doc.get('tipo', 'SEM_TIPO')})")
     
     logger.info(f"Documentos após remoção de duplicatas: {len(unique_docs)} (removidos {len(all_docs) - len(unique_docs)})")
     

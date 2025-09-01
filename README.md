@@ -6,6 +6,7 @@ Sistema Python que faz scraping diário de comunicados diplomáticos do governo 
 
 ### 📰 **Boletim Diplomático Diário**
 - Scraping de 4 seções oficiais: Prime Minister Releases, MEA Press Releases, Speeches & Statements, Media Briefings
+- **Selenium inteligente:** No primeiro dia do mês, acessa automaticamente o mês anterior para buscar documentos
 - Processamento inteligente de datas (segunda-feira pega sábado e domingo)
 - Múltiplos seletores para máxima compatibilidade
 
@@ -16,7 +17,7 @@ Sistema Python que faz scraping diário de comunicados diplomáticos do governo 
 
 ### 🤖 **IA e Processamento**
 - Sumarização com Google Gemini 1.5 Flash
-- **IA inteligente:** Decide automaticamente se usar 2-3 ou 4-5 frases
+- **IA inteligente:** Resumos sempre em 2-3 frases (4-5 apenas para documentos excepcionalmente longos)
 - **Política de idiomas:** Apenas inglês + excepcionalmente hindi no resumo final
 - **Tradução automática:** Outras línguas convertidas para inglês
 
@@ -24,7 +25,8 @@ Sistema Python que faz scraping diário de comunicados diplomáticos do governo 
 - Layout profissional com fundo azul claro
 - **Suporte completo a scripts indianos:** Hindi, Tamil, Malayalam, Bengali, etc.
 - **Lógica inteligente:** Hindi usa fonte Unicode, inglês usa Helvetica
-- **Docker otimizado:** Todas as fontes necessárias incluídas
+- **Margens otimizadas:** Superior reduzida para melhor aproveitamento do espaço
+- **Fonte aumentada:** Resumos em 11pt para melhor legibilidade
 
 ### 📧 **Sistema de E-mail Dinâmico**
 - Envio automático via Gmail SMTP
@@ -42,7 +44,7 @@ Sistema Python que faz scraping diário de comunicados diplomáticos do governo 
 ```
 boletim-diplomatico/
 ├── app/                    # Módulo principal
-│   ├── scraper.py         # Scraping do boletim
+│   ├── scraper.py         # Scraping do boletim (com Selenium)
 │   ├── loksabha_scraper.py # Scraping da Lok Sabha
 │   ├── summarizer.py      # Sumarização do boletim
 │   ├── loksabha_summarizer.py # Sumarização da Lok Sabha
@@ -122,6 +124,7 @@ Atenciosamente,
 
 - **Python 3.8+**
 - **BeautifulSoup4** - Scraping HTML
+- **Selenium** - Navegação web e seleção de mês
 - **Google Gemini API** - Sumarização com IA
 - **ReportLab** - Geração de PDFs
 - **APScheduler** - Agendamento
@@ -152,11 +155,13 @@ docker run -p 8080:8080 boletim-diplomatico
 
 ## 🆕 Melhorias Recentes
 
+- ✅ **Selenium implementado:** Acesso automático ao mês anterior no primeiro dia
+- ✅ **Resumos concisos:** Sempre 2-3 frases (4-5 apenas para documentos longos)
+- ✅ **Layout otimizado:** Margens reduzidas e fonte aumentada para melhor legibilidade
 - ✅ **Política de idiomas:** Apenas inglês + excepcionalmente hindi
 - ✅ **Fontes Unicode completas:** Suporte a todos os scripts indianos
 - ✅ **E-mails dinâmicos:** Texto adaptado ao conteúdo disponível
-- ✅ **Docker otimizado:** Todas as fontes incluídas
-- ✅ **IA mais inteligente:** Decisão automática de tamanho do resumo
+- ✅ **Docker otimizado:** Chrome + fontes incluídas para Selenium
 
 ---
 

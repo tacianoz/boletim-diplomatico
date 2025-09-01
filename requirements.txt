@@ -1,15 +1,13 @@
 requests
 beautifulsoup4
-playwright
-transformers
-torch
+selenium
+webdriver-manager
 apscheduler
 python-dotenv
 email-validator
 schedule
 pytz
 loguru
-openai
 google-generativeai
 flask
 reportlab 

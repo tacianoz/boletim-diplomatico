@@ -106,7 +106,7 @@ venv.bak/
 
 # Spyder project settings
 .spyderproject
-.spyproject
+.spysproject
 
 # Rope project settings
 .ropeproject
@@ -125,11 +125,17 @@ dmypy.json
 # Project specific
 logs/
 *.log
-llama3/
 boletim_diplomatico_*.pdf
+loksabha_weekly_*.pdf
 .env
 .env.local
 .env.production
+
+# Selenium
+chromedriver
+geckodriver
+*.log
+webdriver.log
 
 # IDE
 .vscode/
@@ -140,4 +146,5 @@ boletim_diplomatico_*.pdf
 
 # OS
 .DS_Store
-Thumbs.db .env.backup
+Thumbs.db
+.env.backup
