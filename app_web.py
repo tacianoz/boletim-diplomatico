@@ -263,7 +263,7 @@ def generate_boletim(target_dates):
         
         email_body = f"""Prezados/as colegas,
 
-Segue o Boletim Diplomático de {datetime.now().date().strftime('%d/%m/%Y')}.e
+Segue o Boletim Diplomático de {datetime.now().date().strftime('%d/%m/%Y')}.
 
 Atenciosamente,
 Taciano S. Zimmermann"""
