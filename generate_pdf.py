@@ -276,9 +276,13 @@ def create_pdf_boletim():
                 else:
                     formatted_line = line
                 
-                # Criar estilo dinâmico baseado no conteúdo
-                dynamic_style = create_dynamic_style(normal_style, formatted_line, is_bold=False)
-                story.append(Paragraph(formatted_line, dynamic_style))
+                # Para resumos, usar fonte fixa para consistência entre ambientes
+                summary_style = ParagraphStyle(
+                    'Summary',
+                    parent=normal_style,
+                    fontName='Helvetica'  # Fonte fixa para consistência
+                )
+                story.append(Paragraph(formatted_line, summary_style))
         
         # Gerar PDF com fundo
         doc.build(story, onFirstPage=add_background, onLaterPages=add_background)
