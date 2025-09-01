@@ -111,153 +111,79 @@ def parse_prime_minister_documents(html: str, tipo: str, target_dates: List[date
     return docs
 
 def fetch_prime_minister_with_month_selection(target_dates: List[date]) -> List[Dict]:
-    """Função para buscar documentos do PM com seleção de mês"""
-    import requests
-    
+    """Função para buscar documentos do PM com seleção de mês usando Selenium"""
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import Select
+    from selenium.webdriver.chrome.service import Service
+    from webdriver_manager.chrome import ChromeDriverManager
+    from selenium.webdriver.chrome.options import Options
+    import time
+
     # Determinar o mês correto baseado nas datas alvo
     if not target_dates:
         return []
-    
+
     # Pegar o mês da primeira data alvo
     target_month = target_dates[0].month
     target_year = target_dates[0].year
     
-    # Mapear mês para valor do dropdown
-    month_mapping = {
-        1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6,
-        7: 7, 8: 8, 9: 9, 10: 10, 11: 11, 12: 12
-    }
-    
-    month_value = month_mapping.get(target_month, 1)
-    
-    # URL base do PM
-    base_url = 'https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1'
+    logger.info(f"🎯 Usando Selenium para buscar documentos do mês {target_month}/{target_year}")
     
     try:
-        # Primeiro, fazer GET para obter o ViewState e outros campos necessários
-        session = requests.Session()
-        response = session.get(base_url)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        # Configurar Chrome em modo headless
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         
-        # Extrair campos necessários para o POST
-        viewstate = soup.find('input', {'name': '__VIEWSTATE'})['value'] if soup.find('input', {'name': '__VIEWSTATE'}) else ''
-        viewstategenerator = soup.find('input', {'name': '__VIEWSTATEGENERATOR'})['value'] if soup.find('input', {'name': '__VIEWSTATEGENERATOR'}) else ''
-        eventvalidation = soup.find('input', {'name': '__EVENTVALIDATION'})['value'] if soup.find('input', {'name': '__EVENTVALIDATION'}) else ''
+        # Inicializar o driver
+        driver = webdriver.Chrome(options=chrome_options)
         
-        # Log dos campos extraídos
-        logger.info(f"ViewState extraído: {viewstate[:50]}...")
-        logger.info(f"ViewStateGenerator extraído: {viewstategenerator}")
-        logger.info(f"EventValidation extraído: {eventvalidation[:50]}...")
-        
-        # Verificar se o mês atual é setembro
-        current_month_select = soup.find('select', {'id': 'ContentPlaceHolder1_ddlMonth'})
-        if current_month_select:
-            selected_option = current_month_select.find('option', selected=True)
-            if selected_option:
-                logger.info(f"Mês atual selecionado: {selected_option.text} (valor: {selected_option['value']})")
-            else:
-                logger.warning("Nenhuma opção de mês está selecionada")
-        else:
-            logger.error("Dropdown de mês não encontrado")
-        
-        # Dados para o POST request
-        post_data = {
-            '__VIEWSTATE': viewstate,
-            '__VIEWSTATEGENERATOR': viewstategenerator,
-            '__EVENTVALIDATION': eventvalidation,
-            'ctl00$ContentPlaceHolder1$ddlMonth': str(month_value),
-            '__EVENTTARGET': 'ctl00$ContentPlaceHolder1$ddlMonth',
-            '__EVENTARGUMENT': ''
-        }
-        
-        # Log dos dados do POST
-        logger.info(f"Dados do POST: {post_data}")
-        logger.info(f"URL do POST: {base_url}")
-        logger.info(f"Valor do mês selecionado: {month_value} (August)")
-        
-        # Log dos dados do POST para debug
-        logger.info(f"POST data: {post_data}")
-        logger.info(f"Target month: {target_month} -> month_value: {month_value}")
-        
-        # Fazer POST para selecionar o mês
-        response = session.post(base_url, data=post_data)
-        
-        # Log da resposta para debug
-        logger.info(f"POST response status: {response.status_code}")
-        logger.info(f"POST response content length: {len(response.text)}")
-        
-        # Verificar se o POST funcionou - procurar por indicadores de sucesso
-        if "August" in response.text:
-            logger.info("✅ Seleção de mês funcionou - encontrou referências a agosto")
-        else:
-            logger.warning("⚠️ Seleção de mês pode não ter funcionado")
-            # Log mais detalhado para debug
-            logger.info(f"Conteúdo da resposta (primeiros 500 chars): {response.text[:500]}")
-            logger.info(f"Conteúdo da resposta (últimos 500 chars): {response.text[-500:]}")
+        try:
+            # Acessar a página
+            url = 'https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1'
+            logger.info(f"🌐 Acessando: {url}")
+            driver.get(url)
             
-            # Verificar se há algum erro na resposta
-            if "error" in response.text.lower() or "exception" in response.text.lower():
-                logger.error("❌ Erro detectado na resposta do site")
+            # Aguardar a página carregar
+            time.sleep(3)
             
-            # Verificar se o mês selecionado ainda está como "September"
-            if "September" in response.text and "August" not in response.text:
-                logger.error("❌ Site ainda mostra setembro - seleção de mês falhou")
-        
-        # Agora fazer parsing dos documentos com o mês correto
-        docs = parse_prime_minister_documents(response.text, 'Prime Minister Releases', target_dates)
-        
-        # Se não encontrou documentos, tentar abordagens alternativas
-        if not docs:
-            logger.info("Tentando abordagens alternativas para buscar documentos de agosto")
+            # Encontrar o dropdown de mês
+            month_dropdown = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_ddlMonth"))
+            )
             
-            # Abordagem 1: URL com parâmetros de mês/ano
-            alternative_urls = [
-                f"https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1&month={month_value}&year={target_year}",
-                f"https://www.pib.gov.in/PMContents/PMContents.aspx?month={month_value}&year={target_year}",
-                f"https://www.pib.gov.in/PMContents/PMContents.aspx?ddlMonth={month_value}&ddlYear={target_year}"
-            ]
+            # Selecionar o mês correto
+            select = Select(month_dropdown)
+            select.select_by_value(str(target_month))
             
-            for i, alt_url in enumerate(alternative_urls, 1):
-                logger.info(f"Tentativa {i}: {alt_url}")
-                try:
-                    alt_response = session.get(alt_url)
-                    if alt_response.status_code == 200:
-                        alt_docs = parse_prime_minister_documents(alt_response.text, 'Prime Minister Releases', target_dates)
-                        if alt_docs:
-                            logger.info(f"✅ Abordagem {i} funcionou: {len(alt_docs)} documentos encontrados")
-                            docs = alt_docs
-                            break
-                        else:
-                            logger.info(f"Abordagem {i} retornou HTML mas 0 documentos")
-                    else:
-                        logger.warning(f"Abordagem {i} retornou status {alt_response.status_code}")
-                except Exception as e:
-                    logger.error(f"Erro na abordagem {i}: {e}")
+            logger.info(f"📅 Selecionado mês: {target_month}")
             
-            # Abordagem 2: Tentar arquivo/archive do site
-            if not docs:
-                logger.info("Tentando buscar no arquivo do site...")
-                archive_urls = [
-                    "https://www.pib.gov.in/archive2/",
-                    "https://archive.pib.gov.in/",
-                    "https://www.pib.gov.in/PMContents/archive.aspx"
-                ]
-                
-                for archive_url in archive_urls:
-                    try:
-                        archive_response = session.get(archive_url)
-                        if archive_response.status_code == 200:
-                            logger.info(f"Arquivo acessível: {archive_url}")
-                            # Aqui poderíamos implementar busca no arquivo
-                            break
-                    except Exception as e:
-                        logger.error(f"Erro ao acessar arquivo {archive_url}: {e}")
-        
-        return docs
-        
+            # Aguardar a página atualizar
+            time.sleep(3)
+            
+            # Pegar o HTML da página
+            html = driver.page_source
+            
+            # Fazer parsing dos documentos
+            docs = parse_prime_minister_documents(html, 'Prime Minister Releases', target_dates)
+            
+            logger.info(f"📊 Selenium encontrou {len(docs)} documentos")
+            
+            return docs
+            
+        finally:
+            driver.quit()
+            
     except Exception as e:
-        logger.error(f"Erro ao buscar documentos do PM com seleção de mês: {e}")
-        # Fallback: tentar busca normal sem HTML (vazio)
+        logger.error(f"❌ Erro no Selenium: {e}")
+        # Fallback: tentar busca normal
         return parse_prime_minister_documents("", 'Prime Minister Releases', target_dates)
 
 def should_use_month_selection() -> bool:
@@ -493,7 +419,7 @@ def get_documents_for_dates(target_dates: List[datetime.date]) -> List[Dict]:
             else:
                 logger.info("Não é primeiro dia do mês: usando busca normal")
                 # Nos outros dias, usar busca normal
-                docs = parse_prime_minister_documents(html, tipo)
+                docs = parse_prime_minister_documents(html, tipo, target_dates)
         else:
             # Usar seletores específicos para cada seção
             docs = parse_documents_with_selectors(html, tipo, section_selectors.get(tipo, ['ul li']))
