@@ -155,7 +155,7 @@ def create_pdf_boletim():
             textColor=HexColor('#0066cc'),
             underline=True,
             alignment=0,  # Left align for links
-            fontName=UNICODE_FONT
+            fontName='Helvetica'  # Fonte fixa para consistência
         )
         
         description_style = ParagraphStyle(
@@ -276,11 +276,11 @@ def create_pdf_boletim():
                 else:
                     formatted_line = line
                 
-                # Para resumos, usar fonte fixa para consistência entre ambientes
+                # Para resumos, usar fonte inteligente baseada no conteúdo
                 summary_style = ParagraphStyle(
                     'Summary',
                     parent=normal_style,
-                    fontName='Helvetica'  # Fonte fixa para consistência
+                    fontName=get_appropriate_font(formatted_line, is_bold=False)  # Fonte inteligente
                 )
                 story.append(Paragraph(formatted_line, summary_style))
         
