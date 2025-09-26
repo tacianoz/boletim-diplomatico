@@ -11,7 +11,38 @@ class UNStatementsSummarizer:
             raise ValueError("GOOGLE_API_KEY não configurada")
         
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Lista de modelos para tentar em ordem de preferência
+        models_to_try = [
+            'gemini-2.0-flash',
+            'gemini-2.0-flash-001',
+            'gemini-2.5-flash',
+            'gemini-1.5-flash-8b',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro'
+        ]
+        
+        self.model = None
+        for model_name in models_to_try:
+            try:
+                logger.info(f"Tentando modelo UN Statements: {model_name}")
+                self.model = genai.GenerativeModel(model_name)
+                
+                # Testar o modelo com uma requisição simples
+                test_response = self.model.generate_content("test")
+                if test_response and test_response.text:
+                    logger.info(f"✅ Modelo UN Statements {model_name} funcionando!")
+                    break
+                else:
+                    logger.warning(f"Modelo UN Statements {model_name} retornou resposta vazia")
+                    self.model = None
+            except Exception as e:
+                logger.warning(f"Erro com modelo UN Statements {model_name}: {e}")
+                self.model = None
+        
+        if self.model is None:
+            logger.error("❌ Nenhum modelo UN Statements funcionando!")
+            raise Exception("Nenhum modelo UN Statements disponível")
     
     def summarize_statements(self, statements: List[Dict]) -> str:
         """Sumariza uma lista de statements da ONU"""
@@ -34,10 +65,8 @@ class UNStatementsSummarizer:
         3. Foque nos pontos principais e posições da Índia
         4. Use linguagem diplomática e profissional
         5. NÃO adicione comentários sobre quantidade de statements
-        6. Apenas forneça o resumo direto
-
-        Formato do resumo:
-        [RESUMO DIRETO DO STATEMENT]
+        6. Apenas forneça o resumo direto sem brackets ou formatação especial
+        7. NÃO use colchetes [ ] ao redor do texto
         """
         
         try:

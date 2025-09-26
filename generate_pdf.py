@@ -5,6 +5,7 @@ Script para gerar PDF do Boletim Diplomático
 
 from app.scraper import get_documents_for_dates, fetch_full_content
 from app.summarizer import Summarizer
+from app.un_statements_scraper import UNStatementsScraper
 from app.logger import logger
 from datetime import datetime, date, timedelta
 from reportlab.lib.pagesizes import A4
@@ -54,6 +55,17 @@ def create_pdf_boletim():
         
         docs = get_documents_for_dates(target_dates)
         logger.info(f"Encontrados {len(docs)} documentos do dia anterior")
+        
+        # Buscar UN Statements
+        logger.info("Buscando UN Statements...")
+        un_scraper = UNStatementsScraper()
+        un_statements = un_scraper.get_statements_for_dates(target_dates)
+        logger.info(f"Encontrados {len(un_statements)} UN Statements")
+        
+        # Adicionar UN Statements aos documentos
+        for statement in un_statements:
+            statement['tipo'] = f"UN {statement['tipo']}"
+            docs.append(statement)
         
         if not docs:
             logger.info("Nenhum documento encontrado para o dia anterior.")
