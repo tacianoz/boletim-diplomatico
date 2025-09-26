@@ -6,6 +6,7 @@ Script para gerar PDF do Boletim Diplomático
 from app.scraper import get_documents_for_dates, fetch_full_content
 from app.summarizer import Summarizer
 from app.un_statements_scraper import UNStatementsScraper
+from app.environment_scraper import EnvironmentScraper
 from app.logger import logger
 from datetime import datetime, date, timedelta
 from reportlab.lib.pagesizes import A4
@@ -66,6 +67,15 @@ def create_pdf_boletim():
         for statement in un_statements:
             statement['tipo'] = f"UN {statement['tipo']}"
             docs.append(statement)
+        
+        # Buscar Environment Documents
+        logger.info("Buscando Environment Documents...")
+        environment_scraper = EnvironmentScraper()
+        environment_docs = environment_scraper.get_environment_documents_for_dates(target_dates)
+        logger.info(f"Encontrados {len(environment_docs)} Environment Documents")
+        
+        # Adicionar Environment Documents aos documentos
+        docs.extend(environment_docs)
         
         if not docs:
             logger.info("Nenhum documento encontrado para o dia anterior.")
@@ -248,9 +258,14 @@ def create_pdf_boletim():
             logger.info(f"Processando linha: {line[:100]}...")
                 
             # Seção principal (ex: "Prime Minister Releases")
-            if line in ['Prime Minister Releases', 'MEA - Press Releases', 'MEA - Speeches & Statements', 'MEA - Media Briefings', 'UN Statements']:
+            if line in ['Prime Minister Releases', 'MEA - Press Releases', 'MEA - Speeches & Statements', 'MEA - Media Briefings', 'UN Statements', 'Ministry of Environment, Forest and Climate Change']:
                 current_section = line
                 logger.info(f"Aplicando section_style para: {line}")
+                story.append(Paragraph(current_section, section_style))
+            elif line.startswith('— Ministry of Environment, Forest and Climate Change'):
+                # Tratar caso especial onde a seção Environment aparece com hífen
+                current_section = 'Ministry of Environment, Forest and Climate Change'
+                logger.info(f"Aplicando section_style para: {current_section}")
                 story.append(Paragraph(current_section, section_style))
             elif line == "Nenhum item publicado nesta seção desde o último boletim.":
                 story.append(Paragraph("Nenhum item publicado nesta seção desde o último boletim.", empty_section_style))

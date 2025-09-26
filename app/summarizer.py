@@ -199,7 +199,8 @@ class Summarizer:
             'Prime Minister Releases', 
             'MEA - Press Releases', 
             'MEA - Speeches & Statements', 
-            'MEA - Media Briefings'
+            'MEA - Media Briefings',
+            'Ministry of Environment, Forest and Climate Change'
         ]
         
         for section in sections:
