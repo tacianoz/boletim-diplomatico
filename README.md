@@ -5,10 +5,7 @@ Sistema Python que faz scraping diário de comunicados diplomáticos do governo 
 ## 🚀 Funcionalidades
 
 ### 📰 **Boletim Diplomático Diário**
-- Scraping de 4 seções oficiais: Prime Minister Releases, MEA Press Releases, Speeches & Statements, Media Briefings
-- **Selenium inteligente:** No primeiro dia do mês, acessa automaticamente o mês anterior para buscar documentos
-- Processamento inteligente de datas (segunda-feira pega sábado e domingo)
-- Múltiplos seletores para máxima compatibilidade
+- Scraping de 6 seções oficiais: Prime Minister Releases, MEA Press Releases, Speeches & Statements, Media Briefings, **Ministry of Environment, Forest and Climate Change**, **UN Statements**
 
 ### 🏛️ **Relatório Semanal Lok Sabha**
 - Scraping semanal das questions & answers da Lok Sabha ao MEA
@@ -45,6 +42,9 @@ Sistema Python que faz scraping diário de comunicados diplomáticos do governo 
 boletim-diplomatico/
 ├── app/                    # Módulo principal
 │   ├── scraper.py         # Scraping do boletim (com Selenium)
+│   ├── environment_scraper.py # Scraping do Ministry of Environment
+│   ├── un_statements_scraper.py # Scraping de UN Statements
+│   ├── un_statements_summarizer.py # Sumarização de UN Statements
 │   ├── loksabha_scraper.py # Scraping da Lok Sabha
 │   ├── summarizer.py      # Sumarização do boletim
 │   ├── loksabha_summarizer.py # Sumarização da Lok Sabha
@@ -137,8 +137,14 @@ Atenciosamente,
 gcloud run deploy boletim-diplomatico \
   --source . \
   --platform managed \
-  --region us-central1 \
+  --region asia-south1 \
   --allow-unauthenticated
+```
+
+### **Cloud Scheduler**
+```bash
+# Job agendado para segunda a sábado às 6h (Asia/Kolkata)
+gcloud scheduler jobs list --location=asia-south1
 ```
 
 ### **Docker Local**
@@ -155,6 +161,9 @@ docker run -p 8080:8080 boletim-diplomatico
 
 ## 🆕 Melhorias Recentes
 
+- ✅ **Environment Scraper integrado:** Ministry of Environment, Forest and Climate Change
+- ✅ **Selenium com filtros automáticos:** Ministério + data com re-seleção inteligente
+- ✅ **Extração de conteúdo completo:** Documentos com texto completo para sumarização
 - ✅ **Selenium implementado:** Acesso automático ao mês anterior no primeiro dia
 - ✅ **Resumos concisos:** Sempre 2-3 frases (4-5 apenas para documentos longos)
 - ✅ **Layout otimizado:** Margens reduzidas e fonte aumentada para melhor legibilidade
@@ -162,6 +171,31 @@ docker run -p 8080:8080 boletim-diplomatico
 - ✅ **Fontes Unicode completas:** Suporte a todos os scripts indianos
 - ✅ **E-mails dinâmicos:** Texto adaptado ao conteúdo disponível
 - ✅ **Docker otimizado:** Chrome + fontes incluídas para Selenium
+
+## 🚀 Status Atual
+
+### **✅ Sistema em Produção**
+- **Deploy:** Google Cloud Run (asia-south1)
+- **Job agendado:** Segunda a sábado às 6h (Asia/Kolkata)
+- **URL:** https://boletim-diplomatico-126217515463.asia-south1.run.app
+- **Status:** ✅ Funcionando perfeitamente
+
+### **📊 Seções Ativas**
+1. **Prime Minister Releases** - Scraping com Selenium
+2. **MEA - Press Releases** - Scraping tradicional
+3. **MEA - Speeches & Statements** - Scraping tradicional
+4. **MEA - Media Briefings** - Scraping tradicional
+5. **Ministry of Environment, Forest and Climate Change** - ✨ **NOVO** - Scraping com Selenium
+6. **UN Statements** - Scraping de declarações da ONU
+
+### **🎯 Funcionalidades Testadas**
+- ✅ Environment Scraper com Selenium
+- ✅ UN Statements Scraper
+- ✅ Filtros automáticos por ministério e data
+- ✅ Re-seleção inteligente do ministério
+- ✅ Extração de conteúdo completo
+- ✅ Integração no PDF com formatação correta
+- ✅ Job agendado funcionando
 
 ---
 
