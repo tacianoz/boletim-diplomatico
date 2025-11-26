@@ -92,16 +92,24 @@ def generate_daily_notes(target_dates=None):
 
 def generate_and_send():
     """Generate Notas do Dia and send via email"""
-    pdf_file = generate_daily_notes()
+    # Get target dates first to use in email
+    target_dates = get_target_dates()
+    pdf_file = generate_daily_notes(target_dates)
     
     if not pdf_file:
         logger.error("Não foi possível gerar o PDF")
         return False
     
     try:
-        # Format date for email
-        today = datetime.now().date()
-        date_str = today.strftime('%d/%m/%Y')
+        # Format date for email - handle multiple dates (e.g., Saturday and Sunday on Monday)
+        if len(target_dates) > 1:
+            # Multiple dates: show range (e.g., "23 e 24/11/2025")
+            dates_str = " e ".join([d.strftime('%d/%m/%Y') for d in sorted(target_dates)])
+            date_str = dates_str
+        else:
+            # Single date
+            publication_date = target_dates[0] if target_dates else datetime.now().date()
+            date_str = publication_date.strftime('%d/%m/%Y')
         
         email_subject = f"Notas do Dia - India - {date_str}"
         email_body = f"""Prezados/as colegas,

@@ -101,8 +101,15 @@ def _generate_and_send_daily_notes(target_dates):
         
         # Send email
         try:
-            today = datetime.now().date()
-            date_str = today.strftime('%d/%m/%Y')
+            # Format date for email - handle multiple dates (e.g., Saturday and Sunday on Monday)
+            if len(target_dates) > 1:
+                # Multiple dates: show range (e.g., "23 e 24/11/2025")
+                dates_str = " e ".join([d.strftime('%d/%m/%Y') for d in sorted(target_dates)])
+                date_str = dates_str
+            else:
+                # Single date
+                publication_date = target_dates[0] if target_dates else datetime.now().date()
+                date_str = publication_date.strftime('%d/%m/%Y')
             
             email_subject = f"Notas do Dia - India - {date_str}"
             email_body = f"""Prezados/as colegas,
