@@ -20,7 +20,7 @@ gcloud services enable containerregistry.googleapis.com
 ### **Build e Deploy Automático**
 ```bash
 # Deploy usando Cloud Build
-gcloud builds submit --config cloudbuild.yaml
+gcloud builds submit --config deploy/cloudbuild.yaml
 ```
 
 ### **Deploy Manual**
@@ -138,7 +138,7 @@ gcloud run services update notas-do-dia \
 docker logs CONTAINER_ID
 
 # Executar com debug
-docker run -e DEBUG=1 boletim-diplomatico
+docker run -e DEBUG=1 notas-do-dia
 ```
 
 ## 📈 Escalabilidade

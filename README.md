@@ -38,7 +38,7 @@ Sistema Python que faz scraping diário de comunicados diplomáticos do governo 
 ## 📁 Estrutura do Projeto
 
 ```
-boletim-diplomatico/
+notas-do-dia/
 ├── app/                    # Módulo principal
 │   ├── core/               # Utilitários e factories
 │   │   ├── date_utils.py   # Utilitários de data
@@ -69,8 +69,8 @@ boletim-diplomatico/
 
 ### 1. **Clone e configure**
 ```bash
-git clone https://github.com/tacianoz/boletim-diplomatico.git
-cd boletim-diplomatico
+git clone https://github.com/tacianoz/notas-do-dia.git
+cd notas-do-dia
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
