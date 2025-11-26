@@ -1,39 +1,38 @@
-# Boletim Diplomático – Scraper e Resumidor Automático
+# Notas do Dia – Scraper e Resumidor Automático
 
-Sistema Python que faz scraping diário de comunicados diplomáticos do governo da Índia, resume com Google Gemini AI e gera PDFs elegantes para envio automático por e-mail.
+Sistema Python que faz scraping diário de comunicados diplomáticos do governo da Índia, resume com Google Gemini 2.0 Flash e gera PDFs elegantes para envio automático por e-mail.
 
 ## 🚀 Funcionalidades
 
-### 📰 **Boletim Diplomático Diário**
-- Scraping de 6 seções oficiais: Prime Minister Releases, MEA Press Releases, Speeches & Statements, Media Briefings, **Ministry of Environment, Forest and Climate Change**, **UN Statements**
-
-### 🏛️ **Relatório Semanal Lok Sabha**
-- Scraping semanal das questions & answers da Lok Sabha ao MEA
-- Busca questions da semana anterior (segunda a domingo)
-- Execução automática toda segunda-feira às 6h
+### 📰 **Notas do Dia**
+- Scraping de 4 seções oficiais:
+  - Prime Minister Releases
+  - MEA Press Releases
+  - MEA Speeches & Statements
+  - MEA Media Briefings
 
 ### 🤖 **IA e Processamento**
-- Sumarização com Google Gemini 1.5 Flash
+- Sumarização com Google Gemini 2.0 Flash
 - **IA inteligente:** Resumos sempre em 2-3 frases (4-5 apenas para documentos excepcionalmente longos)
 - **Política de idiomas:** Apenas inglês + excepcionalmente hindi no resumo final
 - **Tradução automática:** Outras línguas convertidas para inglês
 
-### 📄 **Geração de PDF com Suporte Unicode**
-- Layout profissional com fundo azul claro
+### 📄 **Geração de PDF Moderna e Clean**
+- Design moderno, clean e profissional
+- Layout elegante com excelente legibilidade
 - **Suporte completo a scripts indianos:** Hindi, Tamil, Malayalam, Bengali, etc.
 - **Lógica inteligente:** Hindi usa fonte Unicode, inglês usa Helvetica
-- **Margens otimizadas:** Superior reduzida para melhor aproveitamento do espaço
-- **Fonte aumentada:** Resumos em 11pt para melhor legibilidade
+- Tipografia melhorada com hierarquia clara
+- Cores sutis e profissionais
+- Seções bem delimitadas visualmente
 
-### 📧 **Sistema de E-mail Dinâmico**
+### 📧 **Sistema de E-mail**
 - Envio automático via Gmail SMTP
-- **E-mails inteligentes:** Texto dinâmico baseado no conteúdo disponível
-- **Segunda-feira:** E-mail combinado com ambos os PDFs (ou apenas boletim se não há Lok Sabha)
-- **Terça a Sábado:** Boletim diplomático normal
+- E-mails com PDF anexo
 
 ### ⏰ **Agendamento Inteligente**
-- **Segunda-feira às 6h:** Boletim (sábado e domingo) + Lok Sabha (semana anterior)
-- **Terça a Sábado às 6h:** Apenas Boletim (dia anterior)
+- **Segunda-feira às 6h:** Notas do Dia (sábado e domingo)
+- **Terça a Sábado às 6h:** Notas do Dia (dia anterior)
 - Domingo excluído
 
 ## 📁 Estrutura do Projeto
@@ -41,21 +40,29 @@ Sistema Python que faz scraping diário de comunicados diplomáticos do governo 
 ```
 boletim-diplomatico/
 ├── app/                    # Módulo principal
-│   ├── scraper.py         # Scraping do boletim (com Selenium)
-│   ├── environment_scraper.py # Scraping do Ministry of Environment
-│   ├── un_statements_scraper.py # Scraping de UN Statements
-│   ├── un_statements_summarizer.py # Sumarização de UN Statements
-│   ├── loksabha_scraper.py # Scraping da Lok Sabha
-│   ├── summarizer.py      # Sumarização do boletim
-│   ├── loksabha_summarizer.py # Sumarização da Lok Sabha
+│   ├── core/               # Utilitários e factories
+│   │   ├── date_utils.py   # Utilitários de data
+│   │   └── scraper_factory.py # Factory para scrapers
+│   ├── domain/             # Modelos de domínio
+│   │   ├── document.py     # Modelo de documento
+│   │   └── report.py       # Modelo de relatório
+│   ├── infrastructure/     # Camada de infraestrutura
+│   │   └── scrapers/       # Scrapers
+│   │       ├── base_scraper.py # Classe base
+│   │       ├── mea_scraper.py  # Scraper MEA
+│   │       └── pm_scraper.py   # Scraper Prime Minister
+│   ├── services/           # Camada de serviços
+│   │   ├── summarizer.py  # Sumarização
+│   │   └── pdf_generator.py # Geração de PDF
 │   ├── emailer.py         # Sistema de e-mails
 │   ├── font_manager.py    # Gerenciamento de fontes Unicode
-│   └── logger.py          # Sistema de logs
-├── generate_pdf.py        # Geração de PDF do boletim
-├── generate_loksabha_pdf.py # Geração de PDF da Lok Sabha
-├── generate_and_send_combined.py # E-mail combinado
-├── main.py               # Aplicação principal
-└── requirements.txt      # Dependências
+│   ├── logger.py          # Sistema de logs
+│   └── config.py          # Configurações
+├── generate_daily_notes.py # Script principal
+├── generate_pdf.py        # Script legado (deprecated)
+├── app_web.py             # API web Flask
+├── main.py                # Aplicação principal
+└── requirements.txt       # Dependências
 ```
 
 ## ⚙️ Configuração Rápida
@@ -71,7 +78,7 @@ pip install -r requirements.txt
 
 ### 2. **Configure as variáveis**
 ```bash
-cp env.example .env
+cp config/env.example .env
 # Edite .env com suas credenciais:
 # - GOOGLE_API_KEY (Google AI Studio)
 # - EMAIL_* (Gmail SMTP)
@@ -79,78 +86,64 @@ cp env.example .env
 
 ### 3. **Teste**
 ```bash
-python generate_pdf.py                  # Teste do boletim
-python generate_loksabha_pdf.py         # Teste da Lok Sabha
+python generate_daily_notes.py  # Gerar Notas do Dia
 ```
 
 ## 🚀 Execução
 
 ### **Manual**
 ```bash
-python generate_and_send_combined.py    # Ambos os PDFs + e-mail
-python main.py                          # Apenas boletim
-python loksabha_main.py                 # Apenas Lok Sabha
+python generate_daily_notes.py  # Gerar e enviar Notas do Dia
+python app_web.py               # Iniciar API web
 ```
 
-### **Automático**
+### **API Web**
 ```bash
-python combined_main.py                 # Agendamento completo
-```
+# Iniciar servidor
+python app_web.py
 
-## 📧 Exemplos de E-mail
-
-### **Segunda-feira (com Lok Sabha)**
-```
-Prezados/as colegas,
-
-Segue em anexo:
-
-1. Boletim Diplomático de 29/08/2025
-2. Relatório Semanal Lok Sabha de 18/08/2025 a 24/08/2025
-
-Atenciosamente,
-```
-
-### **Terça a Sábado**
-```
-Prezados/as colegas,
-
-Segue o Boletim Diplomático de 29/08/2025.
-
-Atenciosamente,
+# Endpoints disponíveis:
+# POST /generate/daily - Gerar Notas do Dia diário
+# POST /generate/yesterday - Gerar para ontem
+# POST /generate/custom - Gerar para data específica
 ```
 
 ## 🔧 Tecnologias
 
-- **Python 3.8+**
+- **Python 3.11+**
 - **BeautifulSoup4** - Scraping HTML
-- **Selenium** - Navegação web e seleção de mês
-- **Google Gemini API** - Sumarização com IA
+- **Selenium** - Navegação web e seleção de mês (Prime Minister)
+- **Google Gemini 2.0 Flash API** - Sumarização com IA
 - **ReportLab** - Geração de PDFs
-- **APScheduler** - Agendamento
+- **Flask** - API web
 - **SMTP** - Envio de e-mails
 
 ## 🐳 Deploy
 
 ### **Google Cloud Run**
 ```bash
-gcloud run deploy boletim-diplomatico \
-  --source . \
-  --platform managed \
-  --region asia-south1 \
-  --allow-unauthenticated
+# Ver instruções detalhadas em deploy/DEPLOY.md
+cd deploy
+./deploy.sh
 ```
 
 ### **Cloud Scheduler**
 ```bash
 # Job agendado para segunda a sábado às 6h (Asia/Kolkata)
-gcloud scheduler jobs list --location=asia-south1
+gcloud scheduler jobs create http notas-do-dia-daily \
+  --location=asia-south1 \
+  --schedule="0 6 * * 1-6" \
+  --time-zone="Asia/Kolkata" \
+  --uri="https://seu-servico-url/generate/daily" \
+  --http-method=POST
 ```
+
+**📁 Arquivos de deploy:** Todos os scripts e documentação de deploy estão na pasta `deploy/`
 
 ### **Docker Local**
 ```bash
-docker build -t boletim-diplomatico .
-docker run -p 8080:8080 boletim-diplomatico
+docker build -t notas-do-dia .
+docker run -p 8080:8080 notas-do-dia
 ```
 
 ## 📊 Logs
@@ -159,44 +152,37 @@ docker run -p 8080:8080 boletim-diplomatico
 - **Rotação:** Semanal
 - **Níveis:** INFO, ERROR, DEBUG
 
-## 🆕 Melhorias Recentes
+## 🆕 Versão 2.0 - Mudanças Principais
 
-- ✅ **Environment Scraper integrado:** Ministry of Environment, Forest and Climate Change
-- ✅ **Selenium com filtros automáticos:** Ministério + data com re-seleção inteligente
-- ✅ **Extração de conteúdo completo:** Documentos com texto completo para sumarização
-- ✅ **Selenium implementado:** Acesso automático ao mês anterior no primeiro dia
-- ✅ **Resumos concisos:** Sempre 2-3 frases (4-5 apenas para documentos longos)
-- ✅ **Layout otimizado:** Margens reduzidas e fonte aumentada para melhor legibilidade
-- ✅ **Política de idiomas:** Apenas inglês + excepcionalmente hindi
-- ✅ **Fontes Unicode completas:** Suporte a todos os scripts indianos
-- ✅ **E-mails dinâmicos:** Texto adaptado ao conteúdo disponível
-- ✅ **Docker otimizado:** Chrome + fontes incluídas para Selenium
+### ✅ **Melhorias**
+- **Arquitetura refatorada:** Estrutura modular com separação de responsabilidades
+- **Scraping robusto:** Retry logic, fallback strategies, múltiplos seletores
+- **Design moderno:** PDF com layout clean e profissional
+- **Código limpo:** Remoção de funcionalidades desnecessárias
+
+### 🗑️ **Removido**
+- Lok Sabha scraper e funcionalidades relacionadas
+- UN Statements scraper
+- Environment scraper
+- Funcionalidades combinadas
+
+### 📝 **Renomeado**
+- "Boletim Diplomático" → "Notas do Dia"
+- Estrutura de pastas reorganizada
 
 ## 🚀 Status Atual
 
 ### **✅ Sistema em Produção**
 - **Deploy:** Google Cloud Run (asia-south1)
 - **Job agendado:** Segunda a sábado às 6h (Asia/Kolkata)
-- **URL:** https://boletim-diplomatico-126217515463.asia-south1.run.app
-- **Status:** ✅ Funcionando perfeitamente
+- **Status:** ✅ Funcionando
 
 ### **📊 Seções Ativas**
-1. **Prime Minister Releases** - Scraping com Selenium
+1. **Prime Minister Releases** - Scraping com Selenium (quando necessário)
 2. **MEA - Press Releases** - Scraping tradicional
 3. **MEA - Speeches & Statements** - Scraping tradicional
 4. **MEA - Media Briefings** - Scraping tradicional
-5. **Ministry of Environment, Forest and Climate Change** - ✨ **NOVO** - Scraping com Selenium
-6. **UN Statements** - Scraping de declarações da ONU
-
-### **🎯 Funcionalidades Testadas**
-- ✅ Environment Scraper com Selenium
-- ✅ UN Statements Scraper
-- ✅ Filtros automáticos por ministério e data
-- ✅ Re-seleção inteligente do ministério
-- ✅ Extração de conteúdo completo
-- ✅ Integração no PDF com formatação correta
-- ✅ Job agendado funcionando
 
 ---
 
-**Desenvolvido para a Embaixada do Brasil em Nova Délhi** 
+**Desenvolvido para a Embaixada do Brasil em Nova Délhi**

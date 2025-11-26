@@ -1,4 +1,4 @@
-# Deploy do Boletim Diplomático
+# Deploy do Notas do Dia
 
 ## 🚀 Deploy no Google Cloud Run
 
@@ -26,14 +26,14 @@ gcloud builds submit --config cloudbuild.yaml
 ### **Deploy Manual**
 ```bash
 # 1. Build da imagem
-docker build -t gcr.io/SEU_PROJETO_ID/boletim-diplomatico .
+docker build -f deploy/Dockerfile -t gcr.io/SEU_PROJETO_ID/notas-do-dia .
 
 # 2. Push para Container Registry
-docker push gcr.io/SEU_PROJETO_ID/boletim-diplomatico
+docker push gcr.io/SEU_PROJETO_ID/notas-do-dia
 
 # 3. Deploy no Cloud Run
-gcloud run deploy boletim-diplomatico \
-  --image gcr.io/SEU_PROJETO_ID/boletim-diplomatico \
+gcloud run deploy notas-do-dia \
+  --image gcr.io/SEU_PROJETO_ID/notas-do-dia \
   --platform managed \
   --region asia-south1 \
   --allow-unauthenticated \
@@ -48,7 +48,7 @@ gcloud run deploy boletim-diplomatico \
 
 ### **Build da Imagem**
 ```bash
-docker build -t boletim-diplomatico .
+docker build -f deploy/Dockerfile -t notas-do-dia .
 ```
 
 ### **Execução Local**
@@ -58,7 +58,7 @@ docker run -p 8080:8080 \
   -e GOOGLE_API_KEY=sua_chave \
   -e EMAIL_USER=seu_email \
   -e EMAIL_PASS=sua_senha \
-  boletim-diplomatico
+  notas-do-dia
 
 # Executar com volume para logs
 docker run -p 8080:8080 \
@@ -66,7 +66,7 @@ docker run -p 8080:8080 \
   -e GOOGLE_API_KEY=sua_chave \
   -e EMAIL_USER=seu_email \
   -e EMAIL_PASS=sua_senha \
-  boletim-diplomatico
+  notas-do-dia
 ```
 
 ## ⚙️ Variáveis de Ambiente
@@ -101,10 +101,10 @@ LOG_LEVEL=INFO         # Padrão: INFO
 ### **Logs do Cloud Run**
 ```bash
 # Ver logs em tempo real
-gcloud logs tail --service=boletim-diplomatico
+gcloud logs tail --service=notas-do-dia
 
 # Ver logs específicos
-gcloud logs read --service=boletim-diplomatico --limit=50
+gcloud logs read --service=notas-do-dia --limit=50
 ```
 
 ### **Métricas**
@@ -119,7 +119,7 @@ gcloud logs read --service=boletim-diplomatico --limit=50
 #### **1. Erro de Memória**
 ```bash
 # Aumentar memória no Cloud Run
-gcloud run services update boletim-diplomatico \
+gcloud run services update notas-do-dia \
   --memory 6Gi \
   --region asia-south1
 ```
@@ -127,7 +127,7 @@ gcloud run services update boletim-diplomatico \
 #### **2. Timeout do Selenium**
 ```bash
 # Aumentar timeout
-gcloud run services update boletim-diplomatico \
+gcloud run services update notas-do-dia \
   --timeout 7200 \
   --region asia-south1
 ```
@@ -155,5 +155,5 @@ docker run -e DEBUG=1 boletim-diplomatico
 
 ---
 
-**Última atualização:** Setembro 2025
+**Última atualização:** Novembro 2025
 

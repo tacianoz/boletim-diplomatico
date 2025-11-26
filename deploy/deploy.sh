@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# Script de deploy para o Boletim Diplomático
-# Atualizado para incluir Selenium e Chrome
+# Script de deploy para o Notas do Dia
+# Versão 2.0 - Arquitetura refatorada
 
 set -e
 
 # Configurações
-PROJECT_ID="SEU_PROJECT_ID_AQUI"  # Substitua pelo seu Project ID
+PROJECT_ID="gen-lang-client-0413045052"  # Project ID do Google Cloud
 REGION="asia-south1"
-SERVICE_NAME="boletim-diplomatico"
+SERVICE_NAME="notas-do-dia"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 
-echo "🚀 Iniciando deploy do Boletim Diplomático..."
+echo "🚀 Iniciando deploy do Notas do Dia..."
 echo "📋 Projeto: $PROJECT_ID"
 echo "🌍 Região: $REGION"
 echo "🐳 Serviço: $SERVICE_NAME"
@@ -37,9 +37,11 @@ echo "🔌 Habilitando APIs..."
 gcloud services enable run.googleapis.com
 gcloud services enable containerregistry.googleapis.com
 
-# Build da imagem Docker
+# Build da imagem Docker (a partir da raiz do projeto)
 echo "🏗️ Build da imagem Docker..."
-docker build -t $IMAGE_NAME .
+cd ..
+docker build -f deploy/Dockerfile -t $IMAGE_NAME .
+cd deploy
 
 # Push para Container Registry
 echo "📤 Enviando imagem para Container Registry..."

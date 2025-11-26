@@ -127,9 +127,12 @@ logs/
 *.log
 boletim_diplomatico_*.pdf
 loksabha_weekly_*.pdf
+notas_do_dia_*.pdf
 .env
 .env.local
 .env.production
+debug_*.png
+debug_*.html
 
 # Selenium
 chromedriver

@@ -86,48 +86,120 @@ class Summarizer:
                 return "Content not available for this document."
             
             prompt = f"""Summarize the following official document in English. 
-            IMPORTANT: Use EXACTLY 2-3 sentences for the summary.
-            ONLY use 4-5 sentences for exceptionally long documents (over 2000 words).
+            CRITICAL: The summary MUST be between 50-60 words. Be concise and focus only on the most important diplomatic information.
             
-            Be faithful to the original language and use quotation marks for official statements, 
-            titles, or specific terminology. Focus on the key diplomatic information and official positions.
+            WORD COUNT REQUIREMENT:
+            - Minimum: 50 words
+            - Maximum: 60 words
+            - Count your words and ensure the summary is within this range
             
-            LANGUAGE POLICY FOR FINAL SUMMARY:
-            - Write the summary ONLY in English
-            - For any text in Hindi, Malayalam, Tamil, Bengali, or other Indian languages, provide ONLY the English translation
-            - Do NOT include original text in any Indian language in the final summary
-            - If translating from Indian languages, add "(translated from [language])" note
+            CONTENT GUIDELINES:
+            - Focus on key diplomatic information and official positions
+            - Use quotation marks for official statements, titles, or specific terminology
+            - Be faithful to the original meaning
+            - Prioritize: who, what, when, where, and why of the diplomatic communication
+            
+            STRICT LANGUAGE POLICY - CRITICAL:
+            - The summary MUST be written ONLY in English
+            - ABSOLUTELY NO Hindi, Malayalam, Tamil, Bengali, or any other Indian language text in the summary
+            - If the document contains text in Indian languages, translate it completely to English
+            - Do NOT include any Devanagari script, Tamil script, or any non-Latin characters
+            - Do NOT include phrases like "भारत के संविधान" or any Hindi text - translate everything to English
+            - Use ONLY English characters (A-Z, a-z, 0-9, and standard punctuation)
+            - If translating from Indian languages, provide the English translation only - no original text
             - Use quotation marks for official statements, titles, or specific terminology in English only
-            
-            Examples:
-            - Hindi text should become: "Heartiest greetings to all countrymen on Janmashtami." (translated from Hindi)
-            - Malayalam text should become: "Tributes to Mahatma Ayyankali on his Jayanti. He is remembered as an icon of social justice and empowerment." (translated from Malayalam)
-            - Tamil text should become: "The government's commitment to inclusive development..." (translated from Tamil)
             
             Document: {content[:4000]}
             
-            Summary:"""
+            Summary (50-60 words, ENGLISH ONLY - NO HINDI OR OTHER INDIAN LANGUAGES):"""
             
             response = self.model.generate_content(prompt)
-            return response.text.strip()
+            if response and response.text:
+                summary = response.text.strip()
+                # Verificar e limpar qualquer texto em hindi ou outras línguas indianas
+                summary = self._clean_summary(summary)
+                return summary
+            else:
+                logger.warning("Resposta vazia do modelo")
+                return "Summary not available."
         except Exception as e:
             error_msg = str(e)
             logger.error(f"Erro ao sumarizar documento: {error_msg}")
+            
+            # Se for erro de API key expirada ou inválida, tentar reconfigurar
+            if "API key" in error_msg.lower() or "API_KEY" in error_msg or "expired" in error_msg.lower():
+                logger.warning("API key expirada ou inválida. Tentando reconfigurar...")
+                try:
+                    from app.config import GOOGLE_API_KEY
+                    import google.generativeai as genai
+                    genai.configure(api_key=GOOGLE_API_KEY)
+                    # Tentar novamente com modelo mais simples
+                    alt_model = genai.GenerativeModel('gemini-1.5-flash')
+                    response = alt_model.generate_content(prompt)
+                    if response and response.text:
+                        logger.info("Sumarização bem-sucedida após reconfiguração")
+                        return response.text.strip()
+                except Exception as retry_e:
+                    logger.error(f"Erro ao tentar reconfigurar: {retry_e}")
             
             # Se for erro 404 de modelo não encontrado, tentar modelo alternativo
             if "404" in error_msg and "model" in error_msg.lower():
                 logger.warning("Tentando modelo alternativo devido a erro 404...")
                 try:
                     # Tentar modelo alternativo
-                    alt_model = genai.GenerativeModel('gemini-1.5-pro')
+                    alt_model = genai.GenerativeModel('gemini-1.5-flash')
                     response = alt_model.generate_content(prompt)
-                    logger.info("Sumarização bem-sucedida com modelo alternativo")
-                    return response.text.strip()
+                    if response and response.text:
+                        logger.info("Sumarização bem-sucedida com modelo alternativo")
+                        return response.text.strip()
                 except Exception as alt_e:
                     logger.error(f"Erro também com modelo alternativo: {alt_e}")
             
-            # Retornar mensagem de erro para indicar falha na sumarização
-            return "Error in summarization"
+            # Retornar mensagem de erro mais informativa
+            logger.warning(f"Retornando resumo genérico devido a erro: {error_msg[:100]}")
+            return f"Summary unavailable. Document title: {doc.get('title', 'Unknown')}"
+    
+    def _clean_summary(self, summary: str) -> str:
+        """
+        Remove any Hindi, Tamil, Bengali, or other Indian language text from summary.
+        Keeps only English text.
+        """
+        import re
+        
+        # Ranges Unicode para scripts indianos comuns
+        # Devanagari (Hindi, Marathi, etc.): U+0900-U+097F
+        # Tamil: U+0B80-U+0BFF
+        # Bengali: U+0980-U+09FF
+        # Telugu: U+0C00-U+0C7F
+        # Malayalam: U+0D00-U+0D7F
+        # Gujarati: U+0A80-U+0AFF
+        # Kannada: U+0C80-U+0CFF
+        # Oriya: U+0B00-U+0B7F
+        # Punjabi: U+0A00-U+0A7F
+        
+        indian_script_pattern = re.compile(
+            r'[\u0900-\u097F\u0B80-\u0BFF\u0980-\u09FF\u0C00-\u0C7F\u0D00-\u0D7F'
+            r'\u0A80-\u0AFF\u0C80-\u0CFF\u0B00-\u0B7F\u0A00-\u0A7F]+'
+        )
+        
+        # Remover qualquer texto em scripts indianos
+        cleaned = indian_script_pattern.sub('', summary)
+        
+        # Limpar espaços extras que possam ter ficado
+        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+        
+        # Se o resumo foi completamente removido (só tinha hindi), retornar mensagem padrão
+        if not cleaned or len(cleaned) < 10:
+            logger.warning("Resumo continha apenas texto em hindi/outras línguas indianas. Retornando mensagem padrão.")
+            return "Summary contains content in Indian languages. English translation not available."
+        
+        # Verificar se ainda há caracteres problemáticos
+        if indian_script_pattern.search(cleaned):
+            logger.warning("Ainda há caracteres indianos no resumo após limpeza. Removendo novamente...")
+            cleaned = indian_script_pattern.sub('', cleaned)
+            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+        
+        return cleaned
 
     def compile_report(self, docs: List[Dict]) -> str:
         # Agrupar por tipo
@@ -160,36 +232,14 @@ class Summarizer:
         if pm_docs:
             logger.info(f"Primeiro documento PM: {pm_docs[0].get('title', 'SEM_TITULO')[:50]}...")
         
-        # Gerar sumários para documentos regulares
+        # Gerar sumários para todos os documentos
         for doc in docs:
-            if not doc['tipo'].startswith('UN '):
-                summary = self.summarize_document(doc)
-                if summary is None:
-                    # Se a sumarização falhou, usar uma mensagem padrão
-                    doc['summary'] = "Resumo não disponível devido a erro de processamento."
-                else:
-                    doc['summary'] = summary
-        
-        # Processar statements da ONU separadamente
-        un_statements = []
-        for doc in docs:
-            if doc['tipo'].startswith('UN '):
-                un_statements.append(doc)
-        
-        # Sumarizar statements da ONU se houver
-        if un_statements:
-            try:
-                from app.un_statements_summarizer import UNStatementsSummarizer
-                un_summarizer = UNStatementsSummarizer()
-                un_summary = un_summarizer.summarize_statements(un_statements)
-                
-                # Adicionar resumo aos statements individuais
-                for statement in un_statements:
-                    statement['summary'] = un_summary
-            except Exception as e:
-                logger.error(f"Erro ao sumarizar statements da ONU: {e}")
-                for statement in un_statements:
-                    statement['summary'] = "Erro ao processar statement da ONU."
+            summary = self.summarize_document(doc)
+            if summary is None:
+                # Se a sumarização falhou, usar uma mensagem padrão
+                doc['summary'] = "Resumo não disponível devido a erro de processamento."
+            else:
+                doc['summary'] = summary
         
         # Montar saída simplificada
         output = []
@@ -199,8 +249,7 @@ class Summarizer:
             'Prime Minister Releases', 
             'MEA - Press Releases', 
             'MEA - Speeches & Statements', 
-            'MEA - Media Briefings',
-            'Ministry of Environment, Forest and Climate Change'
+            'MEA - Media Briefings'
         ]
         
         for section in sections:
@@ -218,33 +267,5 @@ class Summarizer:
                 # Adicionar mensagem quando não há documentos
                 output.append("Nenhum item publicado nesta seção desde o último boletim.")
                 output.append("")  # Linha em branco
-        
-        # Adicionar seção de UN Statements no final
-        if un_statements:
-            output.append("UN Statements")
-            output.append("")  # Linha em branco
-            
-            # Ordenar statements por data (mais recente primeiro)
-            un_statements.sort(key=lambda x: x['date'], reverse=True)
-            
-            for statement in un_statements:
-                # Formato: data - UNGA/UNSC - título com link
-                date_str = statement['date'].strftime('%d/%m/%Y')
-                org = "UNSC" if "Security Council" in statement['tipo'] else "UNGA"
-                output.append(f"{date_str} - {org} - [{statement['title']}]({statement['link']})")
-                
-                # quem proferiu
-                speaker = statement.get('speaker', '').replace('Statement by ', '')
-                if speaker:
-                    output.append(f"SPEAKER: {speaker}")
-                
-                # resumo
-                output.append(statement['summary'])
-                output.append("")  # Linha em branco entre statements
-        else:
-            output.append("UN Statements")
-            output.append("")  # Linha em branco
-            output.append("Nenhum item publicado nesta seção desde o último boletim.")
-            output.append("")  # Linha em branco
         
         return '\n'.join(output)

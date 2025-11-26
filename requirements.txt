@@ -9,5 +9,11 @@ schedule
 pytz
 loguru
 google-generativeai
-flask
-reportlab 
+flask  # Manter por enquanto para compatibilidade reversa se necessário, mas o foco é FastAPI
+reportlab
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+jinja2
+python-multipart
