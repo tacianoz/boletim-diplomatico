@@ -138,15 +138,26 @@ class PMScraper(BaseScraper):
             chrome_options = self.get_selenium_options()
             driver = webdriver.Chrome(options=chrome_options)
             
-            # Usar URL com parâmetros lang=1&reg=3 para obter títulos em inglês
-            url = 'https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1&lang=1&reg=3'
+            # Acessar URL base primeiro (sem parâmetros lang/reg para evitar erros)
+            url = 'https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1'
             logger.info(f"Acessando: {url}")
             driver.get(url)
             
-            # Aguardar a página carregar (simples, como na versão que funcionava)
+            # Aguardar a página carregar
             time.sleep(3)
             
-            # Encontrar o dropdown de mês (implementação simples)
+            # Tentar encontrar e clicar em um link/controle de idioma inglês se existir
+            try:
+                # Procurar por links ou controles que mudem o idioma para inglês
+                lang_links = driver.find_elements(By.XPATH, "//a[contains(@href, 'lang=1') or contains(text(), 'English') or contains(text(), 'EN')]")
+                if lang_links:
+                    logger.info(f"Encontrado {len(lang_links)} link(s) de idioma, clicando no primeiro")
+                    lang_links[0].click()
+                    time.sleep(3)
+            except Exception as e:
+                logger.debug(f"Não encontrou controle de idioma: {e}")
+            
+            # Encontrar o dropdown de mês
             month_dropdown = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_ddlMonth"))
             )
@@ -157,13 +168,22 @@ class PMScraper(BaseScraper):
             
             logger.info(f"Selecionado mês: {target_month}")
             
-            # Aguardar a página atualizar (simples, como na versão que funcionava)
+            # Aguardar a página atualizar após seleção do mês
             time.sleep(3)
             
             # Pegar o HTML da página
             html = driver.page_source
             
             logger.info(f"HTML obtido, tamanho: {len(html)} caracteres")
+            
+            # Verificar se a página carregou corretamente
+            if 'Access Denied' in html or 'access denied' in html.lower():
+                logger.error("Página retornou 'Access Denied'")
+                return []
+            
+            # Verificar se há conteúdo relevante
+            if 'Posted on:' not in html:
+                logger.warning("HTML não contém 'Posted on:' - pode ter estrutura diferente")
             
             # Fazer parsing dos documentos
             docs = self._parse_pm_documents(html, target_dates)
