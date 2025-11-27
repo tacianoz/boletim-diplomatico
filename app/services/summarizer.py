@@ -34,7 +34,12 @@ class Summarizer:
                     logger.warning(f"Modelo {model_name} retornou resposta vazia")
                     self.model = None
             except Exception as e:
-                logger.warning(f"Erro com modelo {model_name}: {e}")
+                error_msg = str(e)
+                # Se for erro 429 (rate limit), tentar próximo modelo sem delay
+                if "429" in error_msg or "Resource exhausted" in error_msg:
+                    logger.warning(f"Rate limit (429) no modelo {model_name}, tentando próximo...")
+                else:
+                    logger.warning(f"Erro com modelo {model_name}: {error_msg[:100]}")
                 self.model = None
         
         if self.model is None:
@@ -141,6 +146,22 @@ class Summarizer:
                         return response.text.strip()
                 except Exception as retry_e:
                     logger.error(f"Erro ao tentar reconfigurar: {retry_e}")
+            
+            # Se for erro 429 (rate limit), tentar modelo alternativo com delay
+            if "429" in error_msg or "Resource exhausted" in error_msg:
+                logger.warning("Rate limit (429) detectado. Tentando modelo alternativo com delay...")
+                import time
+                time.sleep(2)  # Aguardar 2 segundos antes de tentar próximo modelo
+                try:
+                    alt_model = genai.GenerativeModel('gemini-1.5-flash')
+                    response = alt_model.generate_content(prompt)
+                    if response and response.text:
+                        logger.info("Sumarização bem-sucedida com modelo alternativo após 429")
+                        summary = response.text.strip()
+                        summary = self._clean_summary(summary)
+                        return summary
+                except Exception as alt_e:
+                    logger.error(f"Erro também com modelo alternativo: {alt_e}")
             
             # Se for erro 404 ou 500, tentar modelo alternativo
             if ("404" in error_msg or "500" in error_msg or "Internal error" in error_msg) and "model" in error_msg.lower():
