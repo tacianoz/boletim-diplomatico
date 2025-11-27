@@ -236,12 +236,29 @@ class PDFGenerator:
                     if match:
                         date_str, title, link = match.groups()
                         
+                        # Remove Unicode characters (Hindi, etc.) from title for links
+                        # Helvetica doesn't support Unicode, so we need to clean the title
+                        from app.font_manager import contains_unicode_chars
+                        import re as re_module
+                        
+                        if contains_unicode_chars(title):
+                            # Remove all Indian script characters
+                            indian_script_pattern = re_module.compile(
+                                r'[\u0900-\u097F\u0980-\u09FF\u0A00-\u0A7F\u0A80-\u0AFF\u0B00-\u0B7F\u0B80-\u0BFF\u0C00-\u0C7F\u0C80-\u0CFF\u0D00-\u0D7F]+'
+                            )
+                            title_cleaned = indian_script_pattern.sub('', title)
+                            # Clean up extra spaces
+                            title_cleaned = re_module.sub(r'\s+', ' ', title_cleaned).strip()
+                            # If title is empty after cleaning, use a fallback
+                            if not title_cleaned or len(title_cleaned) < 3:
+                                title_cleaned = "Prime Minister Release"
+                            title = title_cleaned
+                        
                         # Escape HTML special characters in title
                         from xml.sax.saxutils import escape
                         title_escaped = escape(title)
                         
                         # Use same pattern as MEA links - always use Helvetica for links
-                        # This works because MEA links work fine with Helvetica
                         link_text = f'<link href="{link}" color="#2563eb"><b>{date_str}</b> - {title_escaped}</link>'
                         story.append(Paragraph(link_text, self.link_style))
                 
