@@ -235,9 +235,16 @@ class PDFGenerator:
                     match = re.match(r'(\d{2}/\d{2}/\d{4}) - \[(.*?)\]\((.*?)\)', line)
                     if match:
                         date_str, title, link = match.groups()
+                        # Use appropriate font for title (Unicode if needed)
+                        font_name = get_appropriate_font(title, is_bold=False)
+                        link_style_dynamic = ParagraphStyle(
+                            'LinkDynamic',
+                            parent=self.link_style,
+                            fontName=font_name
+                        )
                         # Create clickable link with modern styling
                         link_text = f'<link href="{link}" color="#2563eb"><b>{date_str}</b> - {title}</link>'
-                        story.append(Paragraph(link_text, self.link_style))
+                        story.append(Paragraph(link_text, link_style_dynamic))
                 
                 # Summary text
                 else:
