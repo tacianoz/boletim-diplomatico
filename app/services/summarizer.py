@@ -97,7 +97,7 @@ class Summarizer:
             - Focus on key diplomatic information and official positions
             - Use quotation marks for official statements, titles, or specific terminology
             - Be faithful to the original meaning
-            - Prioritize: who, what, when, where, and why of the diplomatic communication
+            - Prioritize: who, what, when, where, and why of the diplomatic communication (but make the text fluid, no repetitive sentences)
             
             STRICT LANGUAGE POLICY - CRITICAL:
             - The summary MUST be written ONLY in English

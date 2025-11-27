@@ -118,32 +118,32 @@ python app_web.py
 - **Flask** - API web
 - **SMTP** - Envio de e-mails
 
-## 🐳 Deploy
+## ⏰ Agendamento Local (Cron)
 
-### **Google Cloud Run**
+Para executar automaticamente todos os dias (exceto domingo) às 6h da manhã:
+
+### **Opção 1: Script Automático (Recomendado)**
 ```bash
-# Ver instruções detalhadas em deploy/DEPLOY.md
+./setup_cron.sh
+```
+
+### **Opção 2: Manual**
+```bash
+# Editar crontab
+crontab -e
+
+# Adicionar linha (ajuste o caminho conforme necessário):
+# Segunda a sábado às 6h (horário local)
+0 6 * * 1-6 cd /caminho/para/notas-do-dia && /caminho/para/venv/bin/python generate_daily_notes.py >> logs/cron.log 2>&1
+```
+
+**Nota:** Ajuste o caminho do projeto e do Python conforme seu ambiente.
+
+### **Docker Local (Opcional)**
+```bash
 cd deploy
-./deploy.sh
-```
-
-### **Cloud Scheduler**
-```bash
-# Job agendado para segunda a sábado às 6h (Asia/Kolkata)
-gcloud scheduler jobs create http notas-do-dia-daily \
-  --location=asia-south1 \
-  --schedule="0 6 * * 1-6" \
-  --time-zone="Asia/Kolkata" \
-  --uri="https://seu-servico-url/generate/daily" \
-  --http-method=POST
-```
-
-**📁 Arquivos de deploy:** Todos os scripts e documentação de deploy estão na pasta `deploy/`
-
-### **Docker Local**
-```bash
-docker build -t notas-do-dia .
-docker run -p 8080:8080 notas-do-dia
+docker build -f Dockerfile -t notas-do-dia .
+docker run -p 8080:8080 --env-file ../.env notas-do-dia
 ```
 
 ## 📊 Logs
@@ -172,9 +172,9 @@ docker run -p 8080:8080 notas-do-dia
 
 ## 🚀 Status Atual
 
-### **✅ Sistema em Produção**
-- **Deploy:** Google Cloud Run (asia-south1)
-- **Job agendado:** Segunda a sábado às 6h (Asia/Kolkata)
+### **✅ Sistema em Execução Local**
+- **Ambiente:** Local (Python + Cron)
+- **Agendamento:** Segunda a sábado às 6h (via cron)
 - **Status:** ✅ Funcionando
 
 ### **📊 Seções Ativas**

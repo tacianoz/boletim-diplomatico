@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Aplicação principal para Cloud Run
+Aplicação principal - API web Flask
 """
 
 from app_web import app
