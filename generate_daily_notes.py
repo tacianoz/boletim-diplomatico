@@ -92,6 +92,18 @@ def generate_daily_notes(target_dates=None):
 
 def generate_and_send():
     """Generate Notas do Dia and send via email"""
+    from app.config import TIMEZONE
+    import pytz
+    
+    # Check if today is Sunday - skip if it is (Heroku Scheduler runs daily)
+    tz = pytz.timezone(TIMEZONE)
+    today = datetime.now(tz).date()
+    weekday = today.weekday()  # 0=segunda, 1=terça, ..., 6=domingo
+    
+    if weekday == 6:  # Domingo
+        logger.info("Domingo detectado - pulando geração (roda apenas de segunda a sábado)")
+        return False
+    
     # Get target dates first to use in email
     target_dates = get_target_dates()
     pdf_file = generate_daily_notes(target_dates)
