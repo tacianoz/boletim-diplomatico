@@ -1,6 +1,6 @@
 # Notas do Dia – Scraper e Resumidor Automático
 
-Sistema Python que faz scraping diário de comunicados diplomáticos do governo da Índia, resume com Google Gemini 2.0 Flash e gera PDFs elegantes para envio automático por e-mail.
+Sistema Python que faz scraping diário de comunicados diplomáticos do governo da Índia, resume com Google Gemini 2.5 Flash-lite e gera PDFs elegantes para envio automático por e-mail.
 
 ## 🚀 Funcionalidades
 
@@ -12,10 +12,10 @@ Sistema Python que faz scraping diário de comunicados diplomáticos do governo 
   - MEA Media Briefings
 
 ### 🤖 **IA e Processamento**
-- Sumarização com Google Gemini 2.0 Flash
-- **IA inteligente:** Resumos sempre em 2-3 frases (4-5 apenas para documentos excepcionalmente longos)
-- **Política de idiomas:** Apenas inglês + excepcionalmente hindi no resumo final
-- **Tradução automática:** Outras línguas convertidas para inglês
+- Sumarização com Google Gemini 2.5 Flash-lite
+- **IA inteligente:** Resumos sempre em 50-60 palavras
+- **Política de idiomas:** Apenas inglês nos resumos (sem Hindi ou outras línguas indianas)
+- **Tradução automática:** Textos em línguas indianas são traduzidos para inglês automaticamente
 
 ### 📄 **Geração de PDF Moderna e Clean**
 - Design moderno, clean e profissional
@@ -31,9 +31,9 @@ Sistema Python que faz scraping diário de comunicados diplomáticos do governo 
 - E-mails com PDF anexo
 
 ### ⏰ **Agendamento Inteligente**
-- **Segunda-feira às 6h:** Notas do Dia (sábado e domingo)
-- **Terça a Sábado às 6h:** Notas do Dia (dia anterior)
-- Domingo excluído
+- **Segunda-feira às 6h (IST):** Notas do Dia (sábado e domingo anteriores)
+- **Terça a Sábado às 6h (IST):** Notas do Dia (dia anterior)
+- **Domingo:** Execução automaticamente pulada (verificação no código)
 
 ## 📁 Estrutura do Projeto
 
@@ -59,7 +59,6 @@ notas-do-dia/
 │   ├── logger.py          # Sistema de logs
 │   └── config.py          # Configurações
 ├── generate_daily_notes.py # Script principal
-├── generate_pdf.py        # Script legado (deprecated)
 ├── app_web.py             # API web Flask
 ├── main.py                # Aplicação principal
 └── requirements.txt       # Dependências
@@ -113,7 +112,7 @@ python app_web.py
 - **Python 3.11+**
 - **BeautifulSoup4** - Scraping HTML
 - **Selenium** - Navegação web e seleção de mês (Prime Minister)
-- **Google Gemini 2.0 Flash API** - Sumarização com IA
+- **Google Gemini 2.5 Flash-lite API** - Sumarização com IA
 - **ReportLab** - Geração de PDFs
 - **Flask** - API web
 - **SMTP** - Envio de e-mails
@@ -151,13 +150,20 @@ docker run -p 8080:8080 --env-file ../.env notas-do-dia
 # Ver instruções detalhadas em heroku_deploy.md
 heroku create notas-do-dia
 heroku buildpacks:add heroku/python
-heroku buildpacks:add https://github.com/heroku/heroku-buildpack-google-chrome
+heroku buildpacks:add https://github.com/heroku/heroku-buildpack-chrome-for-testing
 heroku buildpacks:add https://github.com/heroku/heroku-buildpack-chromedriver
 heroku config:set GOOGLE_API_KEY=... EMAIL_USER=... # (configurar todas as variáveis)
 git push heroku main
+
+# Configurar Heroku Scheduler para rodar diariamente às 6h (IST = 00:30 UTC)
+# Via dashboard: Add-ons > Heroku Scheduler > Add job
+# Command: python generate_daily_notes.py
+# Schedule: Daily at 00:30 UTC (6h IST)
 ```
 
 **📁 Documentação completa:** `heroku_deploy.md`
+
+**Nota:** O script verifica automaticamente se é domingo e pula a execução, então o Heroku Scheduler pode ser configurado para rodar todos os dias.
 
 ## 📊 Logs
 
@@ -185,16 +191,24 @@ git push heroku main
 
 ## 🚀 Status Atual
 
-### **✅ Sistema em Execução Local**
-- **Ambiente:** Local (Python + Cron)
-- **Agendamento:** Segunda a sábado às 6h (via cron)
+### **✅ Sistema em Execução**
+- **Ambiente:** Heroku
+- **Agendamento:** Heroku Scheduler - Diariamente às 6h IST (00:30 UTC)
+- **Verificação de Domingo:** Automática (script pula execução)
 - **Status:** ✅ Funcionando
 
 ### **📊 Seções Ativas**
-1. **Prime Minister Releases** - Scraping com Selenium (quando necessário)
+1. **Prime Minister Releases** - Scraping com Selenium, títulos em inglês
 2. **MEA - Press Releases** - Scraping tradicional
 3. **MEA - Speeches & Statements** - Scraping tradicional
 4. **MEA - Media Briefings** - Scraping tradicional
+
+### **🔧 Melhorias Recentes**
+- ✅ Títulos do PM scraper agora em inglês (URL com `lang=1&reg=3`)
+- ✅ Verificação automática de domingo (pula execução)
+- ✅ Modelo atualizado para Gemini 2.5 Flash-lite
+- ✅ Resumos limitados a 50-60 palavras
+- ✅ Garantia de resumos apenas em inglês (sem caracteres hindi)
 
 ---
 
