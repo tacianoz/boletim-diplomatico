@@ -146,6 +146,19 @@ docker build -f Dockerfile -t notas-do-dia .
 docker run -p 8080:8080 --env-file ../.env notas-do-dia
 ```
 
+### **Heroku**
+```bash
+# Ver instruções detalhadas em heroku_deploy.md
+heroku create notas-do-dia
+heroku buildpacks:add heroku/python
+heroku buildpacks:add https://github.com/heroku/heroku-buildpack-google-chrome
+heroku buildpacks:add https://github.com/heroku/heroku-buildpack-chromedriver
+heroku config:set GOOGLE_API_KEY=... EMAIL_USER=... # (configurar todas as variáveis)
+git push heroku main
+```
+
+**📁 Documentação completa:** `heroku_deploy.md`
+
 ## 📊 Logs
 
 - **Arquivo:** `logs/boletim.log`

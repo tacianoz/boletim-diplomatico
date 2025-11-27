@@ -111,14 +111,8 @@ def generate_and_send():
             publication_date = target_dates[0] if target_dates else datetime.now().date()
             date_str = publication_date.strftime('%d/%m/%Y')
         
-        email_subject = f"Notas do Dia - India - {date_str}"
-        email_body = f"""Prezados/as colegas,
-
-Seguem as notas do dia do governo indiano publicadas em {date_str}.
-
-Atenciosamente,
-Taciano S. Zimmermann
-Embaixada do Brasil em Nova Délhi"""
+        email_subject = f"Notas do dia - {date_str}"
+        email_body = f"Seguem as notas do dia do governo indiano publicadas em {date_str}."
         
         send_email(
             subject=email_subject,

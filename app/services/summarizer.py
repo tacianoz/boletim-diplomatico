@@ -142,16 +142,32 @@ class Summarizer:
                 except Exception as retry_e:
                     logger.error(f"Erro ao tentar reconfigurar: {retry_e}")
             
-            # Se for erro 404 de modelo não encontrado, tentar modelo alternativo
-            if "404" in error_msg and "model" in error_msg.lower():
-                logger.warning("Tentando modelo alternativo devido a erro 404...")
+            # Se for erro 404 ou 500, tentar modelo alternativo
+            if ("404" in error_msg or "500" in error_msg or "Internal error" in error_msg) and "model" in error_msg.lower():
+                logger.warning("Tentando modelo alternativo devido a erro da API...")
                 try:
                     # Tentar modelo alternativo
                     alt_model = genai.GenerativeModel('gemini-1.5-flash')
                     response = alt_model.generate_content(prompt)
                     if response and response.text:
                         logger.info("Sumarização bem-sucedida com modelo alternativo")
-                        return response.text.strip()
+                        summary = response.text.strip()
+                        summary = self._clean_summary(summary)
+                        return summary
+                except Exception as alt_e:
+                    logger.error(f"Erro também com modelo alternativo: {alt_e}")
+            
+            # Se for erro 500 genérico, tentar modelo alternativo mesmo sem "model" no erro
+            if "500" in error_msg or "Internal error" in error_msg:
+                logger.warning("Tentando modelo alternativo devido a erro 500...")
+                try:
+                    alt_model = genai.GenerativeModel('gemini-1.5-flash')
+                    response = alt_model.generate_content(prompt)
+                    if response and response.text:
+                        logger.info("Sumarização bem-sucedida com modelo alternativo após erro 500")
+                        summary = response.text.strip()
+                        summary = self._clean_summary(summary)
+                        return summary
                 except Exception as alt_e:
                     logger.error(f"Erro também com modelo alternativo: {alt_e}")
             

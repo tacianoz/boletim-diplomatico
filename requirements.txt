@@ -9,7 +9,8 @@ schedule
 pytz
 loguru
 google-generativeai
-flask  # Manter por enquanto para compatibilidade reversa se necessário, mas o foco é FastAPI
+flask
+gunicorn
 reportlab
 fastapi
 uvicorn
