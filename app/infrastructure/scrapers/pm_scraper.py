@@ -138,9 +138,8 @@ class PMScraper(BaseScraper):
             chrome_options = self.get_selenium_options()
             driver = webdriver.Chrome(options=chrome_options)
             
-            # Usar URL simples sem parâmetros extras (como na versão que funcionava)
-            # Não usar PM_RELEASES_URL que tem parâmetros extras
-            url = 'https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1'
+            # Usar URL com parâmetros lang=1&reg=3 para obter títulos em inglês
+            url = 'https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1&lang=1&reg=3'
             logger.info(f"Acessando: {url}")
             driver.get(url)
             

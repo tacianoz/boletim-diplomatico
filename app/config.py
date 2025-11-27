@@ -25,7 +25,7 @@ LOG_PATH = os.getenv('LOG_PATH', 'logs/boletim.log')
 MEA_PRESS_RELEASES_URL = "https://www.mea.gov.in/press-releases.htm?51/Press_Releases"
 MEA_MEDIA_BRIEFINGS_URL = "https://www.mea.gov.in/media-briefings.htm?49/Media_Briefings"
 MEA_SPEECHES_URL = "https://www.mea.gov.in/Speeches-Statements.htm?50/Speeches__amp;_Statements"
-PM_RELEASES_URL = "https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1"
+PM_RELEASES_URL = "https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1&lang=1&reg=3" # URL with English language
 
 # Configurações de scraping
 SCRAPER_RETRY_ATTEMPTS = 3

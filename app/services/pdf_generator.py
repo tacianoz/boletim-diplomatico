@@ -240,7 +240,7 @@ class PDFGenerator:
                         from xml.sax.saxutils import escape
                         title_escaped = escape(title)
                         
-                        # Use same pattern as MEA links - always use Helvetica for links
+                        # Use same font as MEA links (Helvetica) - titles are now in English
                         link_text = f'<link href="{link}" color="#2563eb"><b>{date_str}</b> - {title_escaped}</link>'
                         story.append(Paragraph(link_text, self.link_style))
                 
