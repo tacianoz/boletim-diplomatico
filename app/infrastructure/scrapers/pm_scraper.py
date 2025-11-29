@@ -7,6 +7,7 @@ from typing import List, Dict
 from app.logger import logger
 from app.config import PM_RELEASES_URL, SELENIUM_WAIT_TIME
 from app.infrastructure.scrapers.base_scraper import BaseScraper
+from urllib.parse import urlencode
 import pytz
 import time
 import re
@@ -138,24 +139,15 @@ class PMScraper(BaseScraper):
             chrome_options = self.get_selenium_options()
             driver = webdriver.Chrome(options=chrome_options)
             
-            # Acessar URL base primeiro (sem parâmetros lang/reg para evitar erros)
-            url = 'https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1'
+            # Acessar URL com parâmetros lang=1&reg=3 diretamente (usando URL encoding correto)
+            base_url = 'https://www.pib.gov.in/PMContents/PMContents.aspx'
+            params = {'menuid': '1', 'lang': '1', 'reg': '3'}
+            url = f"{base_url}?{urlencode(params)}"
             logger.info(f"Acessando: {url}")
             driver.get(url)
             
             # Aguardar a página carregar
-            time.sleep(3)
-            
-            # Tentar encontrar e clicar em um link/controle de idioma inglês se existir
-            try:
-                # Procurar por links ou controles que mudem o idioma para inglês
-                lang_links = driver.find_elements(By.XPATH, "//a[contains(@href, 'lang=1') or contains(text(), 'English') or contains(text(), 'EN')]")
-                if lang_links:
-                    logger.info(f"Encontrado {len(lang_links)} link(s) de idioma, clicando no primeiro")
-                    lang_links[0].click()
-                    time.sleep(3)
-            except Exception as e:
-                logger.debug(f"Não encontrou controle de idioma: {e}")
+            time.sleep(5)
             
             # Encontrar o dropdown de mês
             month_dropdown = WebDriverWait(driver, 10).until(
