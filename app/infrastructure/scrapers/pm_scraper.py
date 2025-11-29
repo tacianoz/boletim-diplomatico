@@ -31,6 +31,7 @@ class PMScraper(BaseScraper):
         """Parse Prime Minister documents from HTML"""
         soup = BeautifulSoup(html, 'html.parser')
         docs = []
+        seen_links = set()  # Para evitar duplicatas
         
         # Verificar se a página tem conteúdo relevante
         if 'Access Denied' in html or 'access denied' in html.lower():
@@ -102,13 +103,18 @@ class PMScraper(BaseScraper):
             if title and link and doc_date:
                 # Filtrar por datas alvo
                 if doc_date in target_dates:
-                    logger.info(f"✅ Documento encontrado: {title[:50]}... - {doc_date}")
-                    docs.append({
-                        'tipo': 'Prime Minister Releases',
-                        'title': title,
-                        'link': link,
-                        'date': doc_date
-                    })
+                    # Verificar se já existe um documento com o mesmo link (evitar duplicatas)
+                    if link not in seen_links:
+                        seen_links.add(link)
+                        logger.info(f"✅ Documento encontrado: {title[:50]}... - {doc_date}")
+                        docs.append({
+                            'tipo': 'Prime Minister Releases',
+                            'title': title,
+                            'link': link,
+                            'date': doc_date
+                        })
+                    else:
+                        logger.debug(f"Documento duplicado ignorado: {title[:50]}... - {link}")
                 else:
                     logger.debug(f"Documento fora do range: {title[:50]}... - {doc_date} (procurando: {target_dates})")
             elif title and link:
