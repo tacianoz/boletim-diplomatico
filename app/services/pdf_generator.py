@@ -240,8 +240,12 @@ class PDFGenerator:
                         from xml.sax.saxutils import escape
                         title_escaped = escape(title)
                         
+                        # Escape URL for ReportLab - only escape & to &amp; (needed for XML)
+                        # But keep other characters like = and ? which are needed for query strings
+                        link_escaped = link.replace('&', '&amp;')
+                        
                         # Use same font as MEA links (Helvetica) - titles are now in English
-                        link_text = f'<link href="{link}" color="#2563eb"><b>{date_str}</b> - {title_escaped}</link>'
+                        link_text = f'<link href="{link_escaped}" color="#2563eb"><b>{date_str}</b> - {title_escaped}</link>'
                         story.append(Paragraph(link_text, self.link_style))
                 
                 # Summary text
