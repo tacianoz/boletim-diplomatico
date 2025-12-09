@@ -39,6 +39,7 @@ class BaseScraper:
     def get_selenium_options(self):
         """Retorna opções configuradas para Selenium Chrome"""
         from selenium.webdriver.chrome.options import Options
+        import os
         
         chrome_options = Options()
         chrome_options.add_argument("--headless=new")  # Nova sintaxe
@@ -54,6 +55,16 @@ class BaseScraper:
         chrome_options.add_argument(f"--user-agent={self.HEADERS['User-Agent']}")
         chrome_options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
         chrome_options.add_experimental_option('useAutomationExtension', False)
+        
+        # Configurar caminho do Chrome/Chromium se disponível
+        chrome_bin = os.environ.get('CHROME_BIN') or os.environ.get('CHROME_PATH')
+        if chrome_bin and os.path.exists(chrome_bin):
+            chrome_options.binary_location = chrome_bin
+        elif os.path.exists('/usr/bin/chromium'):
+            chrome_options.binary_location = '/usr/bin/chromium'
+        elif os.path.exists('/usr/bin/google-chrome-stable'):
+            chrome_options.binary_location = '/usr/bin/google-chrome-stable'
+        
         # Adicionar preferências para parecer mais com navegador real
         prefs = {
             "profile.default_content_setting_values": {

@@ -1,7 +1,8 @@
 FROM python:3.11-slim
 
-# Instalar dependências do sistema, Chrome e fontes Unicode completas
-RUN apt-get update && apt-get install -y \
+# Detectar arquitetura e instalar dependências do sistema, Chrome e fontes Unicode
+RUN ARCH=$(dpkg --print-architecture) && \
+    apt-get update && apt-get install -y \
     gcc \
     g++ \
     wget \
@@ -10,13 +11,32 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     ca-certificates \
     curl \
-    # Chrome e ChromeDriver
-    && curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable \
-    && rm -rf /var/lib/apt/lists/* \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libxss1 \
+    libasound2-data \
+    && if [ "$ARCH" = "amd64" ]; then \
+        # Chrome para amd64
+        curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg && \
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list && \
+        apt-get update && \
+        apt-get install -y google-chrome-stable; \
+    elif [ "$ARCH" = "arm64" ]; then \
+        # Chrome para arm64 (usar Chromium como alternativa ou baixar Chrome para ARM)
+        apt-get install -y chromium chromium-driver || \
+        (wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+         echo "deb [arch=arm64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
+         apt-get update && apt-get install -y google-chrome-stable || apt-get install -y chromium); \
+    fi && \
     # Fontes Unicode
+    apt-get install -y \
     fonts-dejavu \
     fonts-dejavu-core \
     fonts-dejavu-extra \
@@ -56,8 +76,15 @@ COPY requirements.txt .
 # Instalar dependências Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar código da aplicação
-COPY . .
+# Copiar código da aplicação (copiar arquivos Python primeiro para melhor cache)
+COPY app/ ./app/
+COPY generate_daily_notes.py ./
+COPY app_web.py ./
+COPY requirements.txt ./
+# Copiar resto dos arquivos necessários
+COPY *.py ./
+COPY *.txt ./
+COPY *.md ./
 
 # Criar diretório para logs
 RUN mkdir -p logs
@@ -70,5 +97,9 @@ ENV CHROME_PATH=/usr/bin/google-chrome
 # Expor porta (se necessário para web)
 EXPOSE 8080
 
-# Comando padrão
-CMD ["python", "app_web.py"]
+# Variável de ambiente para porta
+ENV PORT=8080
+
+# Comando padrão - usar gunicorn se disponível, senão Flask
+# Aumentar timeout para processos longos (scraping pode demorar)
+CMD ["sh", "-c", "if command -v gunicorn > /dev/null; then gunicorn -w 2 -b 0.0.0.0:8080 --timeout 300 --graceful-timeout 30 app_web:app; else python app_web.py; fi"]

@@ -143,7 +143,37 @@ class PMScraper(BaseScraper):
         try:
             # Configurar Chrome (igual à implementação que funcionava)
             chrome_options = self.get_selenium_options()
-            driver = webdriver.Chrome(options=chrome_options)
+            
+            # Configurar ChromeDriver - tentar usar o do sistema primeiro
+            from selenium.webdriver.chrome.service import Service
+            import os
+            
+            chromedriver_path = '/usr/bin/chromedriver'
+            logger.info(f"Verificando ChromeDriver em: {chromedriver_path}")
+            logger.info(f"ChromeDriver existe: {os.path.exists(chromedriver_path)}")
+            
+            if os.path.exists(chromedriver_path):
+                logger.info(f"✅ Usando ChromeDriver do sistema: {chromedriver_path}")
+                try:
+                    service = Service(chromedriver_path)
+                    driver = webdriver.Chrome(service=service, options=chrome_options)
+                    logger.info("✅ ChromeDriver inicializado com sucesso!")
+                except Exception as e:
+                    logger.error(f"❌ Erro ao inicializar ChromeDriver: {e}")
+                    raise
+            else:
+                logger.warning(f"ChromeDriver não encontrado em {chromedriver_path}, tentando webdriver-manager...")
+                # Fallback: usar webdriver-manager
+                try:
+                    from webdriver_manager.chrome import ChromeDriverManager
+                    logger.info("Usando webdriver-manager para baixar ChromeDriver")
+                    service = Service(ChromeDriverManager().install())
+                    driver = webdriver.Chrome(service=service, options=chrome_options)
+                except Exception as e:
+                    logger.warning(f"Erro ao usar webdriver-manager: {e}")
+                    # Último fallback: tentar sem service (pode funcionar se estiver no PATH)
+                    logger.info("Tentando usar ChromeDriver do PATH")
+                    driver = webdriver.Chrome(options=chrome_options)
             
             # Acessar URL com parâmetros lang=1&reg=3 diretamente (usando URL encoding correto)
             base_url = 'https://www.pib.gov.in/PMContents/PMContents.aspx'

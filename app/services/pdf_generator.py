@@ -163,9 +163,15 @@ class PDFGenerator:
                 today = datetime.now().date()
                 output_filename = f"notas_do_dia_{today.strftime('%Y%m%d')}.pdf"
             
+            # Save PDF in logs directory (mounted volume)
+            import os
+            logs_dir = os.path.join(os.getcwd(), 'logs')
+            os.makedirs(logs_dir, exist_ok=True)
+            pdf_path = os.path.join(logs_dir, output_filename)
+            
             # Create document with modern margins
             doc = SimpleDocTemplate(
-                output_filename,
+                pdf_path,
                 pagesize=A4,
                 topMargin=0.7*inch,
                 leftMargin=0.75*inch,
@@ -269,8 +275,8 @@ class PDFGenerator:
                 onLaterPages=lambda c, d: (self._add_background(c, d), self._add_header_footer(c, d))
             )
             
-            logger.info(f"PDF gerado com sucesso: {output_filename}")
-            return output_filename
+            logger.info(f"PDF gerado com sucesso: {pdf_path}")
+            return pdf_path  # Retornar caminho completo, não apenas o nome
             
         except Exception as e:
             logger.error(f"Erro ao gerar PDF: {e}")
