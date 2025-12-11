@@ -86,7 +86,7 @@ class Summarizer:
         return len(words)
     
     def _truncate_summary(self, summary: str, max_words: int = 60) -> str:
-        """Trunca o resumo para no máximo max_words palavras de forma inteligente"""
+        """Trunca o resumo para no máximo max_words palavras mantendo sentenças completas"""
         import re
         # Contar palavras corretamente
         words = re.findall(r'\b\w+\b', summary)
@@ -95,43 +95,77 @@ class Summarizer:
         if word_count <= max_words:
             return summary
         
-        # Tentar truncar por sentenças primeiro (mais natural)
-        sentences = re.split(r'([.!?]\s+)', summary)
+        # Dividir em sentenças completas (preservando pontuação)
+        # Pattern melhorado para capturar sentenças completas
+        sentences = re.split(r'([.!?]+\s*)', summary)
+        
+        # Reagrupar sentenças com sua pontuação
+        complete_sentences = []
+        for i in range(0, len(sentences), 2):
+            if i < len(sentences):
+                sentence = sentences[i]
+                if i + 1 < len(sentences):
+                    sentence += sentences[i + 1]  # Adicionar pontuação
+                if sentence.strip():
+                    complete_sentences.append(sentence)
+        
         result_sentences = []
         current_word_count = 0
         
-        for sentence in sentences:
+        for sentence in complete_sentences:
             sentence_words = re.findall(r'\b\w+\b', sentence)
             sentence_word_count = len(sentence_words)
             
             if current_word_count + sentence_word_count <= max_words:
+                # Cabe a sentença completa
                 result_sentences.append(sentence)
                 current_word_count += sentence_word_count
             else:
-                # Não cabe mais uma sentença completa
-                # Se ainda temos espaço para pelo menos 5 palavras, pegar algumas palavras
-                remaining = max_words - current_word_count
-                if remaining >= 5:
-                    # Pegar palavras individuais da próxima sentença
-                    all_words_in_sentence = re.findall(r'\S+', sentence)
-                    partial_sentence = ' '.join(all_words_in_sentence[:remaining])
-                    result_sentences.append(partial_sentence)
-                break
+                # Não cabe mais sentenças completas
+                # Se estamos muito próximos do limite (dentro de 5 palavras), aceitar a sentença
+                # Isso evita cortar frases no meio
+                if current_word_count + sentence_word_count <= max_words + 5 and current_word_count >= 50:
+                    # Aceitar a sentença se estiver dentro de 65 palavras e já tiver 50+
+                    result_sentences.append(sentence)
+                    logger.info(f"⚠️ Aceitando sentença que ultrapassa ligeiramente ({current_word_count + sentence_word_count} palavras) para manter frase completa")
+                    break
+                else:
+                    # Não adicionar essa sentença, parar aqui
+                    break
         
         truncated_text = ''.join(result_sentences).strip()
         
-        # Validação final: garantir que não ultrapasse
-        final_words = re.findall(r'\b\w+\b', truncated_text)
-        if len(final_words) > max_words:
-            # Fallback: truncamento direto por palavras
-            all_tokens = re.findall(r'\S+', summary)
-            truncated_text = ' '.join(all_tokens[:max_words])
-            # Remover pontuação final estranha
-            truncated_text = truncated_text.rstrip('.,;:')
+        # Se não temos nenhuma sentença ou ficou muito curto, usar método alternativo
+        if not truncated_text or self._count_words(truncated_text) < 50:
+            # Tentar outra abordagem: pegar até max_words palavras completas
+            all_words = summary.split()
+            if len(all_words) > max_words:
+                # Encontrar último ponto antes de max_words
+                truncated_words = all_words[:max_words]
+                # Tentar encontrar onde termina a última sentença completa
+                temp_text = ' '.join(truncated_words)
+                last_period = temp_text.rfind('.')
+                last_exclamation = temp_text.rfind('!')
+                last_question = temp_text.rfind('?')
+                last_sentence_end = max(last_period, last_exclamation, last_question)
+                
+                if last_sentence_end > len(temp_text) * 0.7:  # Se encontrou ponto nos últimos 30%
+                    truncated_text = temp_text[:last_sentence_end + 1]
+                else:
+                    truncated_text = temp_text
         
-        # Contar palavras finais (extrair para variável para evitar backslash em f-string)
-        final_word_count = len(re.findall(r'\b\w+\b', truncated_text))
-        logger.info(f"Resumo truncado de {word_count} para {final_word_count} palavras")
+        # Validação final: se ainda estiver muito acima, ajustar suavemente
+        final_word_count = self._count_words(truncated_text)
+        if final_word_count > max_words + 10:  # Se ultrapassar muito (mais de 10 palavras)
+            logger.warning(f"⚠️ Resumo ainda com {final_word_count} palavras após truncamento. Aplicando ajuste final.")
+            all_words = truncated_text.split()
+            truncated_text = ' '.join(all_words[:max_words])
+            # Garantir que termine com pontuação
+            if not truncated_text.rstrip().endswith(('.', '!', '?')):
+                truncated_text = truncated_text.rstrip() + '.'
+        
+        final_word_count = self._count_words(truncated_text)
+        logger.info(f"Resumo truncado de {word_count} para {final_word_count} palavras (mantendo sentenças completas)")
         return truncated_text
     
     def _refine_summary(self, summary: str, original_content: str) -> str:
@@ -214,20 +248,22 @@ Summary (EXACTLY 50-60 words, ENGLISH ONLY - NO HINDI OR OTHER INDIAN LANGUAGES)
                     word_count = self._count_words(summary)
                     logger.info(f"Resumo após refinamento: {word_count} palavras")
                 
-                if word_count > 60:
-                    # TRUNCAR se exceder 60 palavras (garantia final)
-                    logger.warning(f"⚠️ Resumo com {word_count} palavras excede limite. Truncando para 60 palavras.")
+                if word_count > 65:  # Permite até 65 palavras antes de truncar (tolerância para sentenças completas)
+                    # TRUNCAR apenas se exceder significativamente (mais de 65 palavras)
+                    logger.warning(f"⚠️ Resumo com {word_count} palavras excede limite tolerável. Truncando mantendo sentenças completas.")
                     summary = self._truncate_summary(summary, 60)
                     final_word_count = self._count_words(summary)
                     logger.info(f"✅ Resumo truncado para {final_word_count} palavras")
+                elif word_count > 60:
+                    # Entre 60-65 palavras: aceitar para manter sentenças completas
+                    logger.info(f"ℹ️ Resumo com {word_count} palavras (ligeiramente acima de 60, mas aceitável para manter frases completas)")
                 
-                # Validação final: garantir que nunca ultrapasse 60
+                # Validação final: apenas truncar se exceder muito (mais de 70 palavras)
                 final_check = self._count_words(summary)
-                if final_check > 60:
-                    # Última linha de defesa: truncamento direto
-                    logger.warning(f"⚠️ Validação final: ainda com {final_check} palavras. Aplicando truncamento direto.")
-                    all_tokens = summary.split()
-                    summary = ' '.join(all_tokens[:60])
+                if final_check > 70:
+                    # Última linha de defesa: truncamento por sentenças
+                    logger.warning(f"⚠️ Validação final: ainda com {final_check} palavras. Aplicando truncamento final.")
+                    summary = self._truncate_summary(summary, 60)
                 
                 final_word_count = self._count_words(summary)
                 if final_word_count < 50:
