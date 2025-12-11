@@ -12,10 +12,12 @@ Sistema Python que faz scraping diário de comunicados diplomáticos do governo 
   - MEA Media Briefings
 
 ### 🤖 **IA e Processamento**
-- Sumarização com Google Gemini 2.5 Flash-lite
+- Sumarização com **Ollama (modelo local)** - padrão: `mistral`
+- **Opcional:** Google Gemini 2.5 Flash-lite (configurável via `.env`)
 - **IA inteligente:** Resumos sempre em 50-60 palavras
 - **Política de idiomas:** Apenas inglês nos resumos (sem Hindi ou outras línguas indianas)
 - **Tradução automática:** Textos em línguas indianas são traduzidos para inglês automaticamente
+- **Detecção automática:** Ajusta URL do Ollama automaticamente (localhost para local, host.docker.internal para Docker)
 
 ### 📄 **Geração de PDF Moderna e Clean**
 - Design moderno, clean e profissional
@@ -79,13 +81,31 @@ pip install -r requirements.txt
 ```bash
 cp config/env.example .env
 # Edite .env com suas credenciais:
-# - GOOGLE_API_KEY (Google AI Studio)
+# - OLLAMA_API_URL (padrão: http://localhost:11434/api/generate)
+# - OLLAMA_MODEL (padrão: mistral)
+# - GOOGLE_API_KEY (opcional, para fallback)
 # - EMAIL_* (Gmail SMTP)
+```
+
+### 2.1. **Instalar e configurar Ollama (Recomendado)**
+```bash
+# Instalar Ollama (macOS)
+brew install ollama
+
+# Iniciar Ollama
+ollama serve
+
+# Em outro terminal, baixar modelo
+ollama pull mistral
 ```
 
 ### 3. **Teste**
 ```bash
-python generate_daily_notes.py  # Gerar Notas do Dia
+# Testar saúde da aplicação
+python test_health.py
+
+# Gerar Notas do Dia
+python generate_daily_notes.py
 ```
 
 ## 🚀 Execução
@@ -112,7 +132,9 @@ python app_web.py
 - **Python 3.11+**
 - **BeautifulSoup4** - Scraping HTML
 - **Selenium** - Navegação web e seleção de mês (Prime Minister)
-- **Google Gemini 2.5 Flash-lite API** - Sumarização com IA
+- **Webdriver-Manager** - Gerenciamento automático do ChromeDriver
+- **Ollama** - Sumarização com IA (modelo local, padrão: mistral)
+- **Google Gemini 2.5 Flash-lite API** - Sumarização com IA (opcional, para fallback)
 - **ReportLab** - Geração de PDFs
 - **Flask** - API web
 - **SMTP** - Envio de e-mails
@@ -192,10 +214,18 @@ git push heroku main
 ## 🚀 Status Atual
 
 ### **✅ Sistema em Execução**
-- **Ambiente:** Heroku
-- **Agendamento:** Heroku Scheduler - Diariamente às 6h IST (00:30 UTC)
+- **Ambiente:** Local (Docker) + Heroku (opcional)
+- **Agendamento Local:** LaunchAgent (macOS) - Diariamente às 6h IST
+- **Agendamento Heroku:** Heroku Scheduler - Diariamente às 6h IST (00:30 UTC)
 - **Verificação de Domingo:** Automática (script pula execução)
 - **Status:** ✅ Funcionando
+
+### **📦 Novos Scripts e Ferramentas**
+- ✅ `test_health.py` - Testa saúde da aplicação (imports, scrapers, Flask)
+- ✅ `run.command` - Script executável para macOS (duplo clique para gerar)
+- ✅ `scripts/clean.sh` - Limpeza automática de arquivos temporários
+- ✅ Detecção automática Docker/local para Ollama
+- ✅ ChromeDriver instalado automaticamente via webdriver-manager
 
 ### **📊 Seções Ativas**
 1. **Prime Minister Releases** - Scraping com Selenium, títulos em inglês
@@ -206,7 +236,12 @@ git push heroku main
 ### **🔧 Melhorias Recentes**
 - ✅ Títulos do PM scraper agora em inglês (URL com `lang=1&reg=3`)
 - ✅ Verificação automática de domingo (pula execução)
-- ✅ Modelo atualizado para Gemini 2.5 Flash-lite
+- ✅ **Suporte ao Ollama (modelo local)** - padrão para sumarização
+- ✅ Detecção automática de ambiente Docker/local
+- ✅ ChromeDriver instalado automaticamente via webdriver-manager
+- ✅ Correção do PM scraper para incluir PM Releases no PDF
+- ✅ Script de teste de saúde da aplicação (`test_health.py`)
+- ✅ Script de limpeza de arquivos temporários
 - ✅ Resumos limitados a 50-60 palavras
 - ✅ Garantia de resumos apenas em inglês (sem caracteres hindi)
 
