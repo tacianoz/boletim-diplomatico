@@ -152,6 +152,7 @@ class PMScraper(BaseScraper):
             logger.info(f"Verificando ChromeDriver em: {chromedriver_path}")
             logger.info(f"ChromeDriver existe: {os.path.exists(chromedriver_path)}")
             
+            driver = None
             if os.path.exists(chromedriver_path):
                 logger.info(f"✅ Usando ChromeDriver do sistema: {chromedriver_path}")
                 try:
@@ -159,21 +160,28 @@ class PMScraper(BaseScraper):
                     driver = webdriver.Chrome(service=service, options=chrome_options)
                     logger.info("✅ ChromeDriver inicializado com sucesso!")
                 except Exception as e:
-                    logger.error(f"❌ Erro ao inicializar ChromeDriver: {e}")
-                    raise
-            else:
-                logger.warning(f"ChromeDriver não encontrado em {chromedriver_path}, tentando webdriver-manager...")
+                    logger.warning(f"⚠️ Erro ao inicializar ChromeDriver do sistema: {e}")
+                    driver = None
+            
+            if not driver:
+                logger.info("Tentando usar webdriver-manager...")
                 # Fallback: usar webdriver-manager
                 try:
                     from webdriver_manager.chrome import ChromeDriverManager
                     logger.info("Usando webdriver-manager para baixar ChromeDriver")
                     service = Service(ChromeDriverManager().install())
                     driver = webdriver.Chrome(service=service, options=chrome_options)
+                    logger.info("✅ ChromeDriver inicializado via webdriver-manager!")
                 except Exception as e:
-                    logger.warning(f"Erro ao usar webdriver-manager: {e}")
+                    logger.warning(f"⚠️ Erro ao usar webdriver-manager: {e}")
                     # Último fallback: tentar sem service (pode funcionar se estiver no PATH)
-                    logger.info("Tentando usar ChromeDriver do PATH")
-                    driver = webdriver.Chrome(options=chrome_options)
+                    logger.info("Tentando usar ChromeDriver do PATH...")
+                    try:
+                        driver = webdriver.Chrome(options=chrome_options)
+                        logger.info("✅ ChromeDriver inicializado do PATH!")
+                    except Exception as e:
+                        logger.error(f"❌ Erro ao inicializar ChromeDriver: {e}")
+                        raise Exception(f"Não foi possível inicializar ChromeDriver: {e}")
             
             # Acessar URL com parâmetros lang=1&reg=3 diretamente (usando URL encoding correto)
             base_url = 'https://www.pib.gov.in/PMContents/PMContents.aspx'

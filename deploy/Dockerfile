@@ -23,7 +23,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
     libxss1 \
     libasound2-data \
     && if [ "$ARCH" = "amd64" ]; then \
-        # Chrome para amd64
+        # Chrome para amd64 (ChromeDriver será instalado via webdriver-manager)
         curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg && \
         echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list && \
         apt-get update && \

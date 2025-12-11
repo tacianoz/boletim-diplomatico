@@ -14,7 +14,37 @@ EMAIL_TO = os.getenv('EMAIL_TO')
 MODEL_PATH = os.getenv('MODEL_PATH')
 MODEL_NAME = os.getenv('MODEL_NAME')
 
-# Google Gemini API
+# Ollama API (modelo local)
+# Prioridade: 1) Variável de ambiente (docker-compose/env), 2) Detecção automática
+_env_ollama_url = os.getenv('OLLAMA_API_URL')
+
+# Se já está configurado via variável de ambiente, usar diretamente
+if _env_ollama_url:
+    OLLAMA_API_URL = _env_ollama_url
+else:
+    # Detecção automática: verifica se está rodando em Docker
+    import os.path
+    is_docker = False
+    try:
+        # Múltiplas formas de detectar se está no Docker
+        if os.path.exists('/proc/self/cgroup'):
+            with open('/proc/self/cgroup', 'r') as f:
+                is_docker = any('docker' in line for line in f)
+        # Verifica também se existe /.dockerenv (outra forma comum)
+        if not is_docker:
+            is_docker = os.path.exists('/.dockerenv')
+    except (IOError, OSError):
+        pass  # Se não conseguir ler, assume que não está no Docker
+    
+    # Define URL padrão baseado no ambiente
+    if is_docker:
+        OLLAMA_API_URL = 'http://host.docker.internal:11434/api/generate'
+    else:
+        OLLAMA_API_URL = 'http://localhost:11434/api/generate'
+
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'mistral')
+
+# Google Gemini API (opcional, para fallback se necessário)
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 
 TIMEZONE = os.getenv('TIMEZONE', 'Asia/Kolkata')
