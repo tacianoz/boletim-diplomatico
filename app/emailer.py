@@ -14,10 +14,16 @@ def send_email(subject: str, body: str, attachment_path: str = None, attachments
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain', 'utf-8'))
     
+    # Debug: verificar caminho atual
+    import os
+    logger.info(f"📧 Enviando email - CWD: {os.getcwd()}")
+    
     # Adicionar anexos se fornecidos
     if attachments:
         # Lista de anexos
         for attachment_path in attachments:
+            logger.info(f"📎 Verificando anexo: {attachment_path}")
+            logger.info(f"📎 Arquivo existe: {os.path.exists(attachment_path)}")
             if os.path.exists(attachment_path):
                 with open(attachment_path, 'rb') as attachment:
                     part = MIMEBase('application', 'octet-stream')
@@ -29,20 +35,47 @@ def send_email(subject: str, body: str, attachment_path: str = None, attachments
                     f'attachment; filename= {os.path.basename(attachment_path)}'
                 )
                 msg.attach(part)
-                logger.info(f"Anexo adicionado: {attachment_path}")
-    elif attachment_path and os.path.exists(attachment_path):
-        # Anexo único (compatibilidade com versão anterior)
-        with open(attachment_path, 'rb') as attachment:
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(attachment.read())
+                logger.info(f"✅ Anexo adicionado: {attachment_path}")
+            else:
+                logger.error(f"❌ Arquivo não encontrado: {attachment_path}")
+    elif attachment_path:
+        logger.info(f"📎 Verificando anexo único: {attachment_path}")
+        logger.info(f"📎 Arquivo existe: {os.path.exists(attachment_path)}")
+        logger.info(f"📎 Caminho absoluto: {os.path.abspath(attachment_path)}")
         
-        encoders.encode_base64(part)
-        part.add_header(
-            'Content-Disposition',
-            f'attachment; filename= {os.path.basename(attachment_path)}'
-        )
-        msg.attach(part)
-        logger.info(f"Anexo adicionado: {attachment_path}")
+        if os.path.exists(attachment_path):
+            # Anexo único (compatibilidade com versão anterior)
+            with open(attachment_path, 'rb') as attachment:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(attachment.read())
+            
+            encoders.encode_base64(part)
+            part.add_header(
+                'Content-Disposition',
+                f'attachment; filename= {os.path.basename(attachment_path)}'
+            )
+            msg.attach(part)
+            logger.info(f"✅ Anexo adicionado: {attachment_path}")
+        else:
+            logger.error(f"❌ Arquivo não encontrado: {attachment_path}")
+            logger.error(f"❌ Tentando caminho alternativo...")
+            # Tentar caminho relativo
+            alt_path = os.path.join(os.getcwd(), 'logs', os.path.basename(attachment_path))
+            logger.info(f"📎 Tentando caminho alternativo: {alt_path}")
+            if os.path.exists(alt_path):
+                with open(alt_path, 'rb') as attachment:
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(attachment.read())
+                
+                encoders.encode_base64(part)
+                part.add_header(
+                    'Content-Disposition',
+                    f'attachment; filename= {os.path.basename(alt_path)}'
+                )
+                msg.attach(part)
+                logger.info(f"✅ Anexo adicionado (caminho alternativo): {alt_path}")
+            else:
+                logger.error(f"❌ Arquivo não encontrado em nenhum caminho!")
     
     try:
         # Usar SSL para porta 465, TLS para porta 587

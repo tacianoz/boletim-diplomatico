@@ -275,8 +275,10 @@ class PDFGenerator:
                 onLaterPages=lambda c, d: (self._add_background(c, d), self._add_header_footer(c, d))
             )
             
-            logger.info(f"PDF gerado com sucesso: {pdf_path}")
-            return pdf_path  # Retornar caminho completo, não apenas o nome
+            # Garantir que retornamos caminho absoluto completo
+            pdf_path_abs = os.path.abspath(pdf_path)
+            logger.info(f"PDF gerado com sucesso: {pdf_path_abs}")
+            return pdf_path_abs  # Retornar caminho absoluto completo
             
         except Exception as e:
             logger.error(f"Erro ao gerar PDF: {e}")

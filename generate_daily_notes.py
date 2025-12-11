@@ -65,7 +65,7 @@ def generate_daily_notes(target_dates=None):
         logger.info(f"Total de documentos encontrados: {len(all_docs)}")
         
         # Generate summaries
-        logger.info("Gerando resumos com Google Gemini...")
+        logger.info("Gerando resumos com Ollama (modelo local)...")
         summarizer = Summarizer()
         report_text = summarizer.compile_report(all_docs)
         

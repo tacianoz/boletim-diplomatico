@@ -1,88 +1,82 @@
-import google.generativeai as genai
-from app.config import GOOGLE_API_KEY
+import requests
+from app.config import OLLAMA_API_URL, OLLAMA_MODEL
 from app.logger import logger
 import os
 from typing import List, Dict
 
 class Summarizer:
     def __init__(self):
-        logger.info("Configurando Google Gemini API...")
-        genai.configure(api_key=GOOGLE_API_KEY)
+        logger.info("Configurando Ollama API...")
         
-        # Lista de modelos para tentar em ordem de preferência
-        models_to_try = [
-            'gemini-2.5-flash-lite',
-            'gemini-2.5-flash',
-            'gemini-2.0-flash',
-            'gemini-2.0-flash-001',
-            'gemini-1.5-flash-8b',
-            'gemini-1.5-flash',
-            'gemini-1.5-pro'
-        ]
+        # Configuração padrão do Ollama
+        self.api_url = OLLAMA_API_URL or "http://localhost:11434/api/generate"
+        self.model_name = OLLAMA_MODEL or "mistral"
         
-        self.model = None
-        for model_name in models_to_try:
-            try:
-                logger.info(f"Tentando modelo: {model_name}")
-                self.model = genai.GenerativeModel(model_name)
-                
-                # Testar o modelo com uma requisição simples
-                test_response = self.model.generate_content("test")
-                if test_response and test_response.text:
-                    logger.info(f"✅ Modelo {model_name} funcionando!")
-                    break
-                else:
-                    logger.warning(f"Modelo {model_name} retornou resposta vazia")
-                    self.model = None
-            except Exception as e:
-                error_msg = str(e)
-                # Se for erro 429 (rate limit), tentar próximo modelo sem delay
-                if "429" in error_msg or "Resource exhausted" in error_msg:
-                    logger.warning(f"Rate limit (429) no modelo {model_name}, tentando próximo...")
-                else:
-                    logger.warning(f"Erro com modelo {model_name}: {error_msg[:100]}")
-                self.model = None
+        # Verificar se o Ollama está rodando
+        try:
+            health_url = self.api_url.replace("/api/generate", "/api/tags")
+            response = requests.get(health_url, timeout=5)
+            if response.status_code == 200:
+                logger.info(f"✅ Ollama está rodando em {self.api_url}")
+            else:
+                logger.warning(f"⚠️ Ollama retornou status {response.status_code}")
+        except requests.exceptions.ConnectionError:
+            logger.error(f"❌ Não foi possível conectar ao Ollama em {self.api_url}")
+            logger.error("💡 Certifique-se de que o Ollama está rodando: ollama serve")
+            raise Exception("Ollama não está acessível")
+        except Exception as e:
+            logger.warning(f"⚠️ Erro ao verificar Ollama: {e}")
         
-        if self.model is None:
-            logger.error("❌ Nenhum modelo Gemini funcionando!")
-            logger.warning("💡 Tentando Vertex AI como alternativa...")
-            try:
-                import vertexai
-                from vertexai.generative_models import GenerativeModel
-                
-                # Configurar Vertex AI com o projeto do gcloud
-                import subprocess
-                result = subprocess.run(['gcloud', 'config', 'get-value', 'project'], 
-                                      capture_output=True, text=True)
-                project_id = result.stdout.strip()
-                logger.info(f"Usando projeto: {project_id}")
-                # Tentar diferentes regiões para o Vertex AI
-                regions_to_try = ["us-central1", "europe-west4", "asia-south1"]
-                for region in regions_to_try:
-                    try:
-                        logger.info(f"Tentando região: {region}")
-                        vertexai.init(project=project_id, location=region)
-                        break
-                    except Exception as e:
-                        logger.warning(f"Erro com região {region}: {e}")
-                        continue
-                self.model = GenerativeModel("gemini-1.5-flash")
-                
-                # Testar o modelo Vertex AI
-                test_response = self.model.generate_content("test")
-                if test_response and test_response.text:
-                    logger.info("✅ Vertex AI configurado com sucesso!")
-                else:
-                    logger.error("❌ Vertex AI retornou resposta vazia")
-                    self.model = None
-            except Exception as e:
-                logger.error(f"❌ Vertex AI falhou: {e}")
-                self.model = None
+        # Testar o modelo com uma requisição simples
+        try:
+            test_prompt = "Hello, respond with 'OK' if you can read this."
+            test_response = self._call_ollama(test_prompt)
+            if test_response and "OK" in test_response.upper():
+                logger.info(f"✅ Modelo {self.model_name} funcionando!")
+            else:
+                logger.warning(f"⚠️ Modelo {self.model_name} retornou resposta inesperada: {test_response[:50]}")
+        except Exception as e:
+            logger.error(f"❌ Erro ao testar modelo {self.model_name}: {e}")
+            raise Exception(f"Modelo {self.model_name} não está funcionando")
         
-        if self.model is None:
-            raise Exception("Nenhum modelo Gemini disponível")
-        
-        logger.info("Google Gemini configurado com sucesso!")
+        logger.info(f"Ollama configurado com sucesso! Modelo: {self.model_name}")
+    
+    def _call_ollama(self, prompt: str, system: str = None) -> str:
+        """
+        Chama a API do Ollama para gerar texto
+        """
+        try:
+            payload = {
+                "model": self.model_name,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.7,
+                    "top_p": 0.9,
+                }
+            }
+            
+            if system:
+                payload["system"] = system
+            
+            response = requests.post(
+                self.api_url,
+                json=payload,
+                timeout=120  # Timeout de 2 minutos para respostas longas
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result.get("response", "").strip()
+            else:
+                logger.error(f"Erro na API do Ollama: {response.status_code} - {response.text[:200]}")
+                return ""
+        except requests.exceptions.Timeout:
+            logger.error("Timeout ao chamar Ollama (mais de 2 minutos)")
+            return ""
+        except Exception as e:
+            logger.error(f"Erro ao chamar Ollama: {e}")
+            return ""
 
     def summarize_document(self, doc: Dict) -> str:
         try:
@@ -92,106 +86,45 @@ class Summarizer:
                 return "Content not available for this document."
             
             prompt = f"""Summarize the following official document in English. 
-            CRITICAL: The summary MUST be between 50-60 words. Be concise and focus only on the most important diplomatic information.
+CRITICAL: The summary MUST be between 50-60 words. Be concise and focus only on the most important diplomatic information.
+
+WORD COUNT REQUIREMENT:
+- Minimum: 50 words
+- Maximum: 60 words
+- Count your words and ensure the summary is within this range
+
+CONTENT GUIDELINES:
+- Focus on key diplomatic information and official positions
+- Use quotation marks for official statements, titles, or specific terminology
+- Be faithful to the original meaning
+- Prioritize: who, what, when, where, and why of the diplomatic communication (but make the text fluid, no repetitive sentences)
+
+STRICT LANGUAGE POLICY - CRITICAL:
+- The summary MUST be written ONLY in English
+- ABSOLUTELY NO Hindi, Malayalam, Tamil, Bengali, or any other Indian language text in the summary
+- If the document contains text in Indian languages, translate it completely to English
+- Do NOT include any Devanagari script, Tamil script, or any non-Latin characters
+- Do NOT include phrases like "भारत के संविधान" or any Hindi text - translate everything to English
+- Use ONLY English characters (A-Z, a-z, 0-9, and standard punctuation)
+- If translating from Indian languages, provide the English translation only - no original text
+- Use quotation marks for official statements, titles, or specific terminology in English only
+
+Document: {content[:4000]}
+
+Summary (50-60 words, ENGLISH ONLY - NO HINDI OR OTHER INDIAN LANGUAGES):"""
             
-            WORD COUNT REQUIREMENT:
-            - Minimum: 50 words
-            - Maximum: 60 words
-            - Count your words and ensure the summary is within this range
-            
-            CONTENT GUIDELINES:
-            - Focus on key diplomatic information and official positions
-            - Use quotation marks for official statements, titles, or specific terminology
-            - Be faithful to the original meaning
-            - Prioritize: who, what, when, where, and why of the diplomatic communication (but make the text fluid, no repetitive sentences)
-            
-            STRICT LANGUAGE POLICY - CRITICAL:
-            - The summary MUST be written ONLY in English
-            - ABSOLUTELY NO Hindi, Malayalam, Tamil, Bengali, or any other Indian language text in the summary
-            - If the document contains text in Indian languages, translate it completely to English
-            - Do NOT include any Devanagari script, Tamil script, or any non-Latin characters
-            - Do NOT include phrases like "भारत के संविधान" or any Hindi text - translate everything to English
-            - Use ONLY English characters (A-Z, a-z, 0-9, and standard punctuation)
-            - If translating from Indian languages, provide the English translation only - no original text
-            - Use quotation marks for official statements, titles, or specific terminology in English only
-            
-            Document: {content[:4000]}
-            
-            Summary (50-60 words, ENGLISH ONLY - NO HINDI OR OTHER INDIAN LANGUAGES):"""
-            
-            response = self.model.generate_content(prompt)
-            if response and response.text:
-                summary = response.text.strip()
+            response_text = self._call_ollama(prompt)
+            if response_text:
+                summary = response_text.strip()
                 # Verificar e limpar qualquer texto em hindi ou outras línguas indianas
                 summary = self._clean_summary(summary)
                 return summary
             else:
-                logger.warning("Resposta vazia do modelo")
+                logger.warning("Resposta vazia do Ollama")
                 return "Summary not available."
         except Exception as e:
             error_msg = str(e)
             logger.error(f"Erro ao sumarizar documento: {error_msg}")
-            
-            # Se for erro de API key expirada ou inválida, tentar reconfigurar
-            if "API key" in error_msg.lower() or "API_KEY" in error_msg or "expired" in error_msg.lower():
-                logger.warning("API key expirada ou inválida. Tentando reconfigurar...")
-                try:
-                    from app.config import GOOGLE_API_KEY
-                    import google.generativeai as genai
-                    genai.configure(api_key=GOOGLE_API_KEY)
-                    # Tentar novamente com modelo mais simples
-                    alt_model = genai.GenerativeModel('gemini-1.5-flash')
-                    response = alt_model.generate_content(prompt)
-                    if response and response.text:
-                        logger.info("Sumarização bem-sucedida após reconfiguração")
-                        return response.text.strip()
-                except Exception as retry_e:
-                    logger.error(f"Erro ao tentar reconfigurar: {retry_e}")
-            
-            # Se for erro 429 (rate limit), tentar modelo alternativo com delay
-            if "429" in error_msg or "Resource exhausted" in error_msg:
-                logger.warning("Rate limit (429) detectado. Tentando modelo alternativo com delay...")
-                import time
-                time.sleep(2)  # Aguardar 2 segundos antes de tentar próximo modelo
-                try:
-                    alt_model = genai.GenerativeModel('gemini-1.5-flash')
-                    response = alt_model.generate_content(prompt)
-                    if response and response.text:
-                        logger.info("Sumarização bem-sucedida com modelo alternativo após 429")
-                        summary = response.text.strip()
-                        summary = self._clean_summary(summary)
-                        return summary
-                except Exception as alt_e:
-                    logger.error(f"Erro também com modelo alternativo: {alt_e}")
-            
-            # Se for erro 404 ou 500, tentar modelo alternativo
-            if ("404" in error_msg or "500" in error_msg or "Internal error" in error_msg) and "model" in error_msg.lower():
-                logger.warning("Tentando modelo alternativo devido a erro da API...")
-                try:
-                    # Tentar modelo alternativo
-                    alt_model = genai.GenerativeModel('gemini-1.5-flash')
-                    response = alt_model.generate_content(prompt)
-                    if response and response.text:
-                        logger.info("Sumarização bem-sucedida com modelo alternativo")
-                        summary = response.text.strip()
-                        summary = self._clean_summary(summary)
-                        return summary
-                except Exception as alt_e:
-                    logger.error(f"Erro também com modelo alternativo: {alt_e}")
-            
-            # Se for erro 500 genérico, tentar modelo alternativo mesmo sem "model" no erro
-            if "500" in error_msg or "Internal error" in error_msg:
-                logger.warning("Tentando modelo alternativo devido a erro 500...")
-                try:
-                    alt_model = genai.GenerativeModel('gemini-1.5-flash')
-                    response = alt_model.generate_content(prompt)
-                    if response and response.text:
-                        logger.info("Sumarização bem-sucedida com modelo alternativo após erro 500")
-                        summary = response.text.strip()
-                        summary = self._clean_summary(summary)
-                        return summary
-                except Exception as alt_e:
-                    logger.error(f"Erro também com modelo alternativo: {alt_e}")
             
             # Retornar mensagem de erro mais informativa
             logger.warning(f"Retornando resumo genérico devido a erro: {error_msg[:100]}")
