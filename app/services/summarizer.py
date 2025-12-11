@@ -129,7 +129,9 @@ class Summarizer:
             # Remover pontuação final estranha
             truncated_text = truncated_text.rstrip('.,;:')
         
-        logger.info(f"Resumo truncado de {word_count} para {len(re.findall(r'\b\w+\b', truncated_text))} palavras")
+        # Contar palavras finais (extrair para variável para evitar backslash em f-string)
+        final_word_count = len(re.findall(r'\b\w+\b', truncated_text))
+        logger.info(f"Resumo truncado de {word_count} para {final_word_count} palavras")
         return truncated_text
     
     def _refine_summary(self, summary: str, original_content: str) -> str:
