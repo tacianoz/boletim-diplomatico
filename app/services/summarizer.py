@@ -78,6 +78,87 @@ class Summarizer:
             logger.error(f"Erro ao chamar Ollama: {e}")
             return ""
 
+    def _count_words(self, text: str) -> int:
+        """Conta o número de palavras em um texto"""
+        import re
+        # Remove pontuação e conta palavras
+        words = re.findall(r'\b\w+\b', text.lower())
+        return len(words)
+    
+    def _truncate_summary(self, summary: str, max_words: int = 60) -> str:
+        """Trunca o resumo para no máximo max_words palavras de forma inteligente"""
+        import re
+        # Contar palavras corretamente
+        words = re.findall(r'\b\w+\b', summary)
+        word_count = len(words)
+        
+        if word_count <= max_words:
+            return summary
+        
+        # Tentar truncar por sentenças primeiro (mais natural)
+        sentences = re.split(r'([.!?]\s+)', summary)
+        result_sentences = []
+        current_word_count = 0
+        
+        for sentence in sentences:
+            sentence_words = re.findall(r'\b\w+\b', sentence)
+            sentence_word_count = len(sentence_words)
+            
+            if current_word_count + sentence_word_count <= max_words:
+                result_sentences.append(sentence)
+                current_word_count += sentence_word_count
+            else:
+                # Não cabe mais uma sentença completa
+                # Se ainda temos espaço para pelo menos 5 palavras, pegar algumas palavras
+                remaining = max_words - current_word_count
+                if remaining >= 5:
+                    # Pegar palavras individuais da próxima sentença
+                    all_words_in_sentence = re.findall(r'\S+', sentence)
+                    partial_sentence = ' '.join(all_words_in_sentence[:remaining])
+                    result_sentences.append(partial_sentence)
+                break
+        
+        truncated_text = ''.join(result_sentences).strip()
+        
+        # Validação final: garantir que não ultrapasse
+        final_words = re.findall(r'\b\w+\b', truncated_text)
+        if len(final_words) > max_words:
+            # Fallback: truncamento direto por palavras
+            all_tokens = re.findall(r'\S+', summary)
+            truncated_text = ' '.join(all_tokens[:max_words])
+            # Remover pontuação final estranha
+            truncated_text = truncated_text.rstrip('.,;:')
+        
+        logger.info(f"Resumo truncado de {word_count} para {len(re.findall(r'\b\w+\b', truncated_text))} palavras")
+        return truncated_text
+    
+    def _refine_summary(self, summary: str, original_content: str) -> str:
+        """Refina o resumo se estiver fora do limite de palavras"""
+        word_count = self._count_words(summary)
+        
+        if word_count < 50:
+            # Se tiver menos de 50 palavras, tentar expandir um pouco
+            logger.warning(f"Resumo com apenas {word_count} palavras. Tentando expandir...")
+            expansion_prompt = f"""The following summary is too short ({word_count} words). Expand it to exactly 50-60 words by adding more key diplomatic details from the original document.
+
+Original document excerpt: {original_content[:2000]}
+
+Current summary: {summary}
+
+Expanded summary (exactly 50-60 words, English only):"""
+            
+            expanded = self._call_ollama(expansion_prompt)
+            if expanded and self._count_words(expanded) >= 50:
+                return expanded.strip()
+        
+        elif word_count > 60:
+            # Se tiver mais de 60 palavras, truncar
+            logger.warning(f"Resumo com {word_count} palavras (excede limite de 60). Truncando...")
+            return self._truncate_summary(summary, 60)
+        
+        # Se estiver entre 50-60 palavras, retornar como está
+        return summary
+    
     def summarize_document(self, doc: Dict) -> str:
         try:
             # Verificar se o documento tem conteúdo
@@ -86,12 +167,13 @@ class Summarizer:
                 return "Content not available for this document."
             
             prompt = f"""Summarize the following official document in English. 
-CRITICAL: The summary MUST be between 50-60 words. Be concise and focus only on the most important diplomatic information.
+CRITICAL: The summary MUST be EXACTLY 50-60 words. Count your words carefully and ensure the summary is within this range.
 
-WORD COUNT REQUIREMENT:
-- Minimum: 50 words
-- Maximum: 60 words
-- Count your words and ensure the summary is within this range
+WORD COUNT REQUIREMENT - STRICT:
+- Minimum: 50 words (no less)
+- Maximum: 60 words (no more)
+- You MUST count words and ensure the summary is within this exact range
+- Stop when you reach 60 words maximum
 
 CONTENT GUIDELINES:
 - Focus on key diplomatic information and official positions
@@ -111,13 +193,45 @@ STRICT LANGUAGE POLICY - CRITICAL:
 
 Document: {content[:4000]}
 
-Summary (50-60 words, ENGLISH ONLY - NO HINDI OR OTHER INDIAN LANGUAGES):"""
+Summary (EXACTLY 50-60 words, ENGLISH ONLY - NO HINDI OR OTHER INDIAN LANGUAGES):"""
             
             response_text = self._call_ollama(prompt)
             if response_text:
                 summary = response_text.strip()
                 # Verificar e limpar qualquer texto em hindi ou outras línguas indianas
                 summary = self._clean_summary(summary)
+                
+                # Validar e ajustar contagem de palavras
+                word_count = self._count_words(summary)
+                logger.info(f"Resumo gerado com {word_count} palavras")
+                
+                # VALIDAÇÃO RIGOROSA: Garantir que está entre 50-60 palavras
+                if word_count < 50:
+                    # Tentar expandir se estiver muito curto
+                    summary = self._refine_summary(summary, content)
+                    word_count = self._count_words(summary)
+                    logger.info(f"Resumo após refinamento: {word_count} palavras")
+                
+                if word_count > 60:
+                    # TRUNCAR se exceder 60 palavras (garantia final)
+                    logger.warning(f"⚠️ Resumo com {word_count} palavras excede limite. Truncando para 60 palavras.")
+                    summary = self._truncate_summary(summary, 60)
+                    final_word_count = self._count_words(summary)
+                    logger.info(f"✅ Resumo truncado para {final_word_count} palavras")
+                
+                # Validação final: garantir que nunca ultrapasse 60
+                final_check = self._count_words(summary)
+                if final_check > 60:
+                    # Última linha de defesa: truncamento direto
+                    logger.warning(f"⚠️ Validação final: ainda com {final_check} palavras. Aplicando truncamento direto.")
+                    all_tokens = summary.split()
+                    summary = ' '.join(all_tokens[:60])
+                
+                final_word_count = self._count_words(summary)
+                if final_word_count < 50:
+                    logger.warning(f"⚠️ Resumo final com apenas {final_word_count} palavras (mínimo: 50)")
+                
+                logger.info(f"✅ Resumo final: {final_word_count} palavras")
                 return summary
             else:
                 logger.warning("Resposta vazia do Ollama")
