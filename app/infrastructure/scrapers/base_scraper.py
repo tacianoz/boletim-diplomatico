@@ -40,38 +40,20 @@ class BaseScraper:
         """Retorna opções configuradas para Selenium Chrome"""
         from selenium.webdriver.chrome.options import Options
         import os
-        
+
         chrome_options = Options()
-        chrome_options.add_argument("--headless=new")  # Nova sintaxe
+        chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--window-size=1920,1080")
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_argument("--disable-extensions")
-        chrome_options.add_argument("--disable-logging")
-        chrome_options.add_argument("--disable-web-security")
-        chrome_options.add_argument("--allow-running-insecure-content")
         chrome_options.add_argument(f"--user-agent={self.HEADERS['User-Agent']}")
-        chrome_options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
+
+        # Anti-detection options
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
         chrome_options.add_experimental_option('useAutomationExtension', False)
-        
-        # Configurar caminho do Chrome/Chromium se disponível
-        chrome_bin = os.environ.get('CHROME_BIN') or os.environ.get('CHROME_PATH')
-        if chrome_bin and os.path.exists(chrome_bin):
-            chrome_options.binary_location = chrome_bin
-        elif os.path.exists('/usr/bin/chromium'):
-            chrome_options.binary_location = '/usr/bin/chromium'
-        elif os.path.exists('/usr/bin/google-chrome-stable'):
-            chrome_options.binary_location = '/usr/bin/google-chrome-stable'
-        
-        # Adicionar preferências para parecer mais com navegador real
-        prefs = {
-            "profile.default_content_setting_values": {
-                "notifications": 2
-            }
-        }
-        chrome_options.add_experimental_option("prefs", prefs)
+
         return chrome_options
     
     def fetch_page(self, url: str, retry: bool = True) -> Optional[str]:
@@ -276,10 +258,6 @@ class BaseScraper:
             unwanted.decompose()
         
         content_text = main.get_text(separator='\n', strip=True)
-        
-        # Limitar tamanho para não sobrecarregar API
-        if len(content_text) > 4000:
-            content_text = content_text[:4000] + "..."
-        
+
         return content_text
 

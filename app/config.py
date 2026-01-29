@@ -44,8 +44,12 @@ else:
 
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'mistral')
 
-# Google Gemini API (opcional, para fallback se necessário)
+# Provedor de sumarização: 'ollama' ou 'gemini'
+SUMMARIZER_PROVIDER = os.getenv('SUMMARIZER_PROVIDER', 'ollama').lower()
+
+# Google Gemini API
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
 
 TIMEZONE = os.getenv('TIMEZONE', 'Asia/Kolkata')
 

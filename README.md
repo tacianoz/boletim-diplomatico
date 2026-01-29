@@ -1,249 +1,119 @@
 # Notas do Dia – Scraper e Resumidor Automático
 
-Sistema Python que faz scraping diário de comunicados diplomáticos do governo da Índia, resume com Google Gemini 2.5 Flash-lite e gera PDFs elegantes para envio automático por e-mail.
+Sistema Python que faz scraping diário de comunicados diplomáticos do governo da Índia, resume com **Google Gemini 2.5 Flash** e gera PDFs para envio automático por e-mail.
 
-## 🚀 Funcionalidades
+## Funcionalidades
 
-### 📰 **Notas do Dia**
-- Scraping de 4 seções oficiais:
-  - Prime Minister Releases
-  - MEA Press Releases
-  - MEA Speeches & Statements
-  - MEA Media Briefings
+### Scraping
+- **Prime Minister Releases** - via Selenium (site requer JavaScript)
+- **MEA Press Releases**
+- **MEA Speeches & Statements**
+- **MEA Media Briefings**
 
-### 🤖 **IA e Processamento**
-- Sumarização com **Ollama (modelo local)** - padrão: `mistral`
-- **Opcional:** Google Gemini 2.5 Flash-lite (configurável via `.env`)
-- **IA inteligente:** Resumos sempre em 50-60 palavras
-- **Política de idiomas:** Apenas inglês nos resumos (sem Hindi ou outras línguas indianas)
-- **Tradução automática:** Textos em línguas indianas são traduzidos para inglês automaticamente
-- **Detecção automática:** Ajusta URL do Ollama automaticamente (localhost para local, host.docker.internal para Docker)
+### Sumarização com IA
+- **Google Gemini 2.5 Flash** (padrão)
+- **Ollama** (opcional, modelo local)
+- Resumos de 40-50 palavras em inglês
+- Extração de conteúdo via iframe para PM releases
 
-### 📄 **Geração de PDF Moderna e Clean**
-- Design moderno, clean e profissional
-- Layout elegante com excelente legibilidade
-- **Suporte completo a scripts indianos:** Hindi, Tamil, Malayalam, Bengali, etc.
-- **Lógica inteligente:** Hindi usa fonte Unicode, inglês usa Helvetica
-- Tipografia melhorada com hierarquia clara
-- Cores sutis e profissionais
-- Seções bem delimitadas visualmente
-
-### 📧 **Sistema de E-mail**
+### PDF e E-mail
+- PDF com design clean e profissional
+- Suporte a scripts indianos (Hindi, Tamil, etc.)
 - Envio automático via Gmail SMTP
-- E-mails com PDF anexo
 
-### ⏰ **Agendamento Inteligente**
-- **Segunda-feira às 6h (IST):** Notas do Dia (sábado e domingo anteriores)
-- **Terça a Sábado às 6h (IST):** Notas do Dia (dia anterior)
-- **Domingo:** Execução automaticamente pulada (verificação no código)
+### Agendamento
+- **Segunda-feira 6h IST:** Notas de sábado e domingo
+- **Terça a Sábado 6h IST:** Notas do dia anterior
+- **Domingo:** Pula automaticamente
 
-## 📁 Estrutura do Projeto
+## Configuração
 
-```
-notas-do-dia/
-├── app/                    # Módulo principal
-│   ├── core/               # Utilitários e factories
-│   │   ├── date_utils.py   # Utilitários de data
-│   │   └── scraper_factory.py # Factory para scrapers
-│   ├── domain/             # Modelos de domínio
-│   │   ├── document.py     # Modelo de documento
-│   │   └── report.py       # Modelo de relatório
-│   ├── infrastructure/     # Camada de infraestrutura
-│   │   └── scrapers/       # Scrapers
-│   │       ├── base_scraper.py # Classe base
-│   │       ├── mea_scraper.py  # Scraper MEA
-│   │       └── pm_scraper.py   # Scraper Prime Minister
-│   ├── services/           # Camada de serviços
-│   │   ├── summarizer.py  # Sumarização
-│   │   └── pdf_generator.py # Geração de PDF
-│   ├── emailer.py         # Sistema de e-mails
-│   ├── font_manager.py    # Gerenciamento de fontes Unicode
-│   ├── logger.py          # Sistema de logs
-│   └── config.py          # Configurações
-├── generate_daily_notes.py # Script principal
-├── app_web.py             # API web Flask
-├── main.py                # Aplicação principal
-└── requirements.txt       # Dependências
-```
-
-## ⚙️ Configuração Rápida
-
-### 1. **Clone e configure**
+### 1. Clone e instale
 ```bash
 git clone https://github.com/tacianoz/notas-do-dia.git
-cd notas-do-dia
+cd notas-do-dia/apps/notas-do-dia
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. **Configure as variáveis**
+### 2. Configure o .env
 ```bash
 cp config/env.example .env
-# Edite .env com suas credenciais:
-# - OLLAMA_API_URL (padrão: http://localhost:11434/api/generate)
-# - OLLAMA_MODEL (padrão: mistral)
-# - GOOGLE_API_KEY (opcional, para fallback)
-# - EMAIL_* (Gmail SMTP)
 ```
 
-### 2.1. **Instalar e configurar Ollama (Recomendado)**
-```bash
-# Instalar Ollama (macOS)
-brew install ollama
+Edite `.env`:
+```env
+# Sumarização (gemini ou ollama)
+SUMMARIZER_PROVIDER=gemini
+GOOGLE_API_KEY=sua_api_key_aqui
+GEMINI_MODEL=gemini-2.5-flash
 
-# Iniciar Ollama
-ollama serve
+# E-mail
+EMAIL_USER=seu_email@gmail.com
+EMAIL_PASSWORD=sua_app_password
+EMAIL_RECIPIENTS=destinatario1@email.com,destinatario2@email.com
 
-# Em outro terminal, baixar modelo
-ollama pull mistral
+# Opcional: Ollama (se SUMMARIZER_PROVIDER=ollama)
+OLLAMA_API_URL=http://localhost:11434/api/generate
+OLLAMA_MODEL=mistral
 ```
 
-### 3. **Teste**
+### 3. Teste
 ```bash
-# Testar saúde da aplicação
-python test_health.py
-
-# Gerar Notas do Dia
 python generate_daily_notes.py
 ```
 
-## 🚀 Execução
+## Docker
 
-### **Manual**
+### Build e execução
 ```bash
-python generate_daily_notes.py  # Gerar e enviar Notas do Dia
-python app_web.py               # Iniciar API web
+cd /caminho/para/notas-do-dia
+docker-compose up -d --build
 ```
 
-### **API Web**
+### Executar manualmente
 ```bash
-# Iniciar servidor
-python app_web.py
-
-# Endpoints disponíveis:
-# POST /generate/daily - Gerar Notas do Dia diário
-# POST /generate/yesterday - Gerar para ontem
-# POST /generate/custom - Gerar para data específica
+docker exec notas-do-dia python generate_daily_notes.py
 ```
 
-## 🔧 Tecnologias
-
-- **Python 3.11+**
-- **BeautifulSoup4** - Scraping HTML
-- **Selenium** - Navegação web e seleção de mês (Prime Minister)
-- **Webdriver-Manager** - Gerenciamento automático do ChromeDriver
-- **Ollama** - Sumarização com IA (modelo local, padrão: mistral)
-- **Google Gemini 2.5 Flash-lite API** - Sumarização com IA (opcional, para fallback)
-- **ReportLab** - Geração de PDFs
-- **Flask** - API web
-- **SMTP** - Envio de e-mails
-
-## ⏰ Agendamento Local (Cron)
-
-Para executar automaticamente todos os dias (exceto domingo) às 6h da manhã:
-
-### **Opção 1: Script Automático (Recomendado)**
+### Reiniciar (após mudar .env)
 ```bash
-./setup_cron.sh
+docker-compose restart
 ```
 
-### **Opção 2: Manual**
+### Logs
 ```bash
-# Editar crontab
-crontab -e
-
-# Adicionar linha (ajuste o caminho conforme necessário):
-# Segunda a sábado às 6h (horário local)
-0 6 * * 1-6 cd /caminho/para/notas-do-dia && /caminho/para/venv/bin/python generate_daily_notes.py >> logs/cron.log 2>&1
+docker logs -f notas-do-dia
 ```
 
-**Nota:** Ajuste o caminho do projeto e do Python conforme seu ambiente.
+## Estrutura
 
-### **Docker Local (Opcional)**
-```bash
-cd deploy
-docker build -f Dockerfile -t notas-do-dia .
-docker run -p 8080:8080 --env-file ../.env notas-do-dia
+```
+notas-do-dia/
+├── app/
+│   ├── infrastructure/scrapers/
+│   │   ├── base_scraper.py
+│   │   ├── mea_scraper.py
+│   │   └── pm_scraper.py
+│   ├── services/
+│   │   ├── summarizer.py
+│   │   └── pdf_generator.py
+│   ├── config.py
+│   └── emailer.py
+├── generate_daily_notes.py
+├── app_web.py
+└── deploy/Dockerfile
 ```
 
-### **Heroku**
-```bash
-# Ver instruções detalhadas em heroku_deploy.md
-heroku create notas-do-dia
-heroku buildpacks:add heroku/python
-heroku buildpacks:add https://github.com/heroku/heroku-buildpack-chrome-for-testing
-heroku buildpacks:add https://github.com/heroku/heroku-buildpack-chromedriver
-heroku config:set GOOGLE_API_KEY=... EMAIL_USER=... # (configurar todas as variáveis)
-git push heroku main
+## Tecnologias
 
-# Configurar Heroku Scheduler para rodar diariamente às 6h (IST = 00:30 UTC)
-# Via dashboard: Add-ons > Heroku Scheduler > Add job
-# Command: python generate_daily_notes.py
-# Schedule: Daily at 00:30 UTC (6h IST)
-```
-
-**📁 Documentação completa:** `heroku_deploy.md`
-
-**Nota:** O script verifica automaticamente se é domingo e pula a execução, então o Heroku Scheduler pode ser configurado para rodar todos os dias.
-
-## 📊 Logs
-
-- **Arquivo:** `logs/boletim.log`
-- **Rotação:** Semanal
-- **Níveis:** INFO, ERROR, DEBUG
-
-## 🆕 Versão 2.0 - Mudanças Principais
-
-### ✅ **Melhorias**
-- **Arquitetura refatorada:** Estrutura modular com separação de responsabilidades
-- **Scraping robusto:** Retry logic, fallback strategies, múltiplos seletores
-- **Design moderno:** PDF com layout clean e profissional
-- **Código limpo:** Remoção de funcionalidades desnecessárias
-
-### 🗑️ **Removido**
-- Lok Sabha scraper e funcionalidades relacionadas
-- UN Statements scraper
-- Environment scraper
-- Funcionalidades combinadas
-
-### 📝 **Renomeado**
-- "Boletim Diplomático" → "Notas do Dia"
-- Estrutura de pastas reorganizada
-
-## 🚀 Status Atual
-
-### **✅ Sistema em Execução**
-- **Ambiente:** Local (Docker) + Heroku (opcional)
-- **Agendamento Local:** LaunchAgent (macOS) - Diariamente às 6h IST
-- **Agendamento Heroku:** Heroku Scheduler - Diariamente às 6h IST (00:30 UTC)
-- **Verificação de Domingo:** Automática (script pula execução)
-- **Status:** ✅ Funcionando
-
-### **📦 Novos Scripts e Ferramentas**
-- ✅ `test_health.py` - Testa saúde da aplicação (imports, scrapers, Flask)
-- ✅ `run.command` - Script executável para macOS (duplo clique para gerar)
-- ✅ `scripts/clean.sh` - Limpeza automática de arquivos temporários
-- ✅ Detecção automática Docker/local para Ollama
-- ✅ ChromeDriver instalado automaticamente via webdriver-manager
-
-### **📊 Seções Ativas**
-1. **Prime Minister Releases** - Scraping com Selenium, títulos em inglês
-2. **MEA - Press Releases** - Scraping tradicional
-3. **MEA - Speeches & Statements** - Scraping tradicional
-4. **MEA - Media Briefings** - Scraping tradicional
-
-### **🔧 Melhorias Recentes**
-- ✅ Títulos do PM scraper agora em inglês (URL com `lang=1&reg=3`)
-- ✅ Verificação automática de domingo (pula execução)
-- ✅ **Suporte ao Ollama (modelo local)** - padrão para sumarização
-- ✅ Detecção automática de ambiente Docker/local
-- ✅ ChromeDriver instalado automaticamente via webdriver-manager
-- ✅ Correção do PM scraper para incluir PM Releases no PDF
-- ✅ Script de teste de saúde da aplicação (`test_health.py`)
-- ✅ Script de limpeza de arquivos temporários
-- ✅ Resumos limitados a 50-60 palavras
-- ✅ Garantia de resumos apenas em inglês (sem caracteres hindi)
+- Python 3.11+
+- Selenium + ChromeDriver (webdriver-manager)
+- Google Gemini API
+- BeautifulSoup4
+- ReportLab (PDF)
+- Flask (API web)
 
 ---
 
