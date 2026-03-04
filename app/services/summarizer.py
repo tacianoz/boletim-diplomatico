@@ -30,14 +30,14 @@ class BaseSummarizer(ABC):
 
     def _get_summarization_prompt(self, content: str) -> str:
         """Retorna o prompt padrão para sumarização"""
-        return f"""You are a diplomatic analyst. Write a complete summary of this official government document.
+        return f"""Write a factual summary of this official government document.
 
 REQUIREMENTS:
 1. Write exactly 40-50 words - no less, no more
 2. Write in English only
-3. Include: WHO was involved, WHAT happened, WHEN, WHERE, and WHY it matters
+3. Include only what the document states: WHO was involved, WHAT happened, WHEN, and WHERE (or occasion/topic). Do not add "why it matters" or interpretation.
 4. End with a complete sentence (never cut off mid-sentence)
-5. Focus on key diplomatic points and official positions
+5. Factual summary only: stick to the text; no analysis, no commentary, no opinions.
 
 DOCUMENT TO SUMMARIZE:
 {content[:4000]}
@@ -150,7 +150,7 @@ class OllamaSummarizer(BaseSummarizer):
 
 
 class GeminiSummarizer(BaseSummarizer):
-    """Provedor de sumarização usando Google Gemini"""
+    """Provedor de sumarização usando Google Gemini (SDK google-genai)"""
 
     def __init__(self):
         logger.info("Configurando Google Gemini API...")
@@ -161,12 +161,12 @@ class GeminiSummarizer(BaseSummarizer):
         self.model_name = GEMINI_MODEL or "gemini-2.5-flash-preview-04-17"
 
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=GOOGLE_API_KEY)
-            self.model = genai.GenerativeModel(self.model_name)
-            self.genai = genai
+            from google import genai
+            from google.genai import types
+            self._types = types
+            self.client = genai.Client(api_key=GOOGLE_API_KEY)
         except ImportError:
-            raise Exception("Pacote google-generativeai não instalado. Execute: pip install google-generativeai")
+            raise Exception("Pacote google-genai não instalado. Execute: pip install google-genai")
 
         if not self.health_check():
             raise Exception("Gemini API não está acessível")
@@ -176,12 +176,15 @@ class GeminiSummarizer(BaseSummarizer):
     def health_check(self) -> bool:
         """Verifica se a API do Gemini está acessível"""
         try:
-            response = self.model.generate_content("Hello, respond with 'OK' if you can read this.")
-            if response and response.text and "OK" in response.text.upper():
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents="Hello, respond with 'OK' if you can read this.",
+            )
+            if response and getattr(response, "text", None) and "OK" in (response.text or "").upper():
                 logger.info(f"✅ Gemini API funcionando com modelo {self.model_name}")
                 return True
             else:
-                logger.warning(f"⚠️ Gemini retornou resposta inesperada")
+                logger.warning("⚠️ Gemini retornou resposta inesperada")
                 return True  # Ainda pode funcionar
         except Exception as e:
             logger.error(f"❌ Erro ao verificar Gemini: {e}")
@@ -195,36 +198,22 @@ class GeminiSummarizer(BaseSummarizer):
             else:
                 full_prompt = prompt
 
-            generation_config = {
-                "temperature": 0.7,
-                "top_p": 0.9,
-                "max_output_tokens": 2048,
-            }
-
-            response = self.model.generate_content(
-                full_prompt,
-                generation_config=generation_config
+            config = self._types.GenerateContentConfig(
+                temperature=0.7,
+                top_p=0.9,
+                max_output_tokens=2048,
             )
 
-            if response:
-                # Log response details
-                if response.candidates:
-                    candidate = response.candidates[0]
-                    finish_reason = candidate.finish_reason
-                    if str(finish_reason) != "FinishReason.STOP" and str(finish_reason) != "1":
-                        logger.warning(f"⚠️ Gemini finish_reason: {finish_reason}")
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=full_prompt,
+                config=config,
+            )
 
-            if response and response.text:
-                raw_text = response.text
+            raw_text = getattr(response, "text", None) if response else None
+            if raw_text:
                 logger.debug(f"Gemini raw response ({len(raw_text)} chars): {raw_text[:200]}...")
                 return raw_text.strip()
-            elif response and response.candidates:
-                # Tentar extrair texto dos candidates
-                for candidate in response.candidates:
-                    if candidate.content and candidate.content.parts:
-                        text = ''.join(part.text for part in candidate.content.parts if hasattr(part, 'text'))
-                        if text:
-                            return text.strip()
 
             logger.warning("Resposta vazia do Gemini")
             return ""

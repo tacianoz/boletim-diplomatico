@@ -288,11 +288,76 @@ class PMScraper(BaseScraper):
                 return []
 
             # Aguardar a página carregar
-            time.sleep(3)
+            time.sleep(2)
 
-            # Encontrar o dropdown de mês usando find_element direto (mais simples e estável)
+            wait = WebDriverWait(driver, 15)
+
+            def _find_month_dropdown(d):
+                """Tenta encontrar o select de mês por ID, name ou CSS."""
+                try:
+                    return d.find_element(By.ID, "ContentPlaceHolder1_ddlMonth")
+                except Exception:
+                    pass
+                try:
+                    return d.find_element(By.NAME, "ddlMonth")
+                except Exception:
+                    pass
+                for sel in ["select[id*='ddlMonth']", "select[name='ddlMonth']"]:
+                    try:
+                        return d.find_element(By.CSS_SELECTOR, sel)
+                    except Exception:
+                        pass
+                return None
+
             logger.info("Buscando dropdown de mês...")
-            month_dropdown = driver.find_element(By.ID, "ContentPlaceHolder1_ddlMonth")
+            month_dropdown = None
+            try:
+                month_dropdown = wait.until(
+                    EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_ddlMonth"))
+                )
+                logger.info("Dropdown de mês encontrado por ID.")
+            except Exception:
+                month_dropdown = _find_month_dropdown(driver)
+                if month_dropdown:
+                    logger.info("Dropdown de mês encontrado por fallback (name/CSS).")
+
+            # Se não encontrou no frame principal, tentar dentro de iframes
+            if not month_dropdown:
+                for iframe in driver.find_elements(By.TAG_NAME, "iframe"):
+                    src = (iframe.get_attribute("src") or "").lower()
+                    if "pib.gov.in" in src or "pmcontents" in src or not src.strip():
+                        in_iframe = False
+                        try:
+                            driver.switch_to.frame(iframe)
+                            in_iframe = True
+                            logger.info(f"Tentando dropdown dentro de iframe: {src[:80]}...")
+                            month_dropdown = _find_month_dropdown(driver)
+                            if month_dropdown:
+                                logger.info("Dropdown de mês encontrado dentro de iframe.")
+                                break
+                        except Exception as e:
+                            logger.debug(f"Erro ao buscar em iframe: {e}")
+                        finally:
+                            if in_iframe and not month_dropdown:
+                                driver.switch_to.default_content()
+                    if month_dropdown:
+                        break
+
+            if not month_dropdown:
+                logger.warning(
+                    "Dropdown de mês não encontrado. O seletor do site PIB pode ter mudado."
+                )
+                if os.getenv("PIB_SCRAPER_DEBUG", "").lower() in ("1", "true", "yes"):
+                    log_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "logs")
+                    os.makedirs(log_dir, exist_ok=True)
+                    path = os.path.join(
+                        log_dir,
+                        f"pib_pm_page_fail_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                    )
+                    with open(path, "w", encoding="utf-8") as f:
+                        f.write(driver.page_source)
+                    logger.info(f"HTML da página salvo em {path} para diagnóstico.")
+                return []
 
             # Selecionar o mês correto
             logger.info(f"Selecionando mês: {target_month}")
