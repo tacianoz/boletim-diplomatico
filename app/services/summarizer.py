@@ -34,10 +34,12 @@ class BaseSummarizer(ABC):
 
 REQUIREMENTS:
 1. Write exactly 40-50 words - no less, no more
-2. Write in English only
+2. Write in English only. No Hindi, Malayalam, Tamil, Bengali, or any other Indian language; no Devanagari or other non-Latin scripts. If the document contains text in Indian languages, summarize or refer to it in English only.
 3. Include only what the document states: WHO was involved, WHAT happened, WHEN, and WHERE (or occasion/topic). Do not add "why it matters" or interpretation.
-4. End with a complete sentence (never cut off mid-sentence)
-5. Factual summary only: stick to the text; no analysis, no commentary, no opinions.
+4. Use quotation marks for official statements, titles, or key terminology when relevant.
+5. Write in fluid prose; avoid repetitive or list-like sentences.
+6. End with a complete sentence (never cut off mid-sentence)
+7. Factual summary only: stick to the text; no analysis, no commentary, no opinions.
 
 DOCUMENT TO SUMMARIZE:
 {content[:4000]}
