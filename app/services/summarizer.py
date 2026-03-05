@@ -30,21 +30,37 @@ class BaseSummarizer(ABC):
 
     def _get_summarization_prompt(self, content: str) -> str:
         """Retorna o prompt padrão para sumarização"""
-        return f"""Write a factual summary of this official government document.
+        return f"""Summarize the following official document in English. 
 
-REQUIREMENTS:
-1. Write exactly 40-50 words - no less, no more
-2. Write in English only. No Hindi, Malayalam, Tamil, Bengali, or any other Indian language; no Devanagari or other non-Latin scripts. If the document contains text in Indian languages, summarize or refer to it in English only.
-3. Include only what the document states: WHO was involved, WHAT happened, WHEN, and WHERE (or occasion/topic). Do not add "why it matters" or interpretation.
-4. Use quotation marks for official statements, titles, or key terminology when relevant.
-5. Write in fluid prose; avoid repetitive or list-like sentences.
-6. End with a complete sentence (never cut off mid-sentence)
-7. Factual summary only: stick to the text; no analysis, no commentary, no opinions.
-
-DOCUMENT TO SUMMARIZE:
-{content[:4000]}
-
-Write your 40-50 word summary now (complete sentences only):"""
+            CRITICAL: The summary MUST be between 50-60 words. Be concise and focus only on the most important diplomatic information.
+            
+            WORD COUNT REQUIREMENT:
+            - Minimum: 50 words
+            - Maximum: 60 words
+            - Count your words and ensure the summary is within this range
+            
+            CONTENT GUIDELINES:
+            - Focus on key diplomatic information and official positions
+            - Use quotation marks for official statements, titles, or specific terminology
+            - Be faithful to the original meaning
+            - Prioritize: who, what, when and where of the diplomatic communication (but make the text fluid, no repetitive sentences)
+            - Avoid starting every summary with the date (for example: "On March 4, 2026, ..."); vary the opening structure
+            - Mention the exact date only when it is diplomatically relevant; otherwise focus on the actors and actions
+            - Do not add interpretations or evaluations. Only restate the explicit content of the document in a neutral, factual tone.
+            
+            STRICT LANGUAGE POLICY - CRITICAL:
+            - The summary MUST be written ONLY in English
+            - ABSOLUTELY NO Hindi, Malayalam, Tamil, Bengali, or any other Indian language text in the summary
+            - If the document contains text in Indian languages, translate it completely to English
+            - Do NOT include any Devanagari script, Tamil script, or any non-Latin characters
+            - Do NOT include phrases like "भारत के संविधान" or any Hindi text - translate everything to English
+            - Use ONLY English characters (A-Z, a-z, 0-9, and standard punctuation)
+            - If translating from Indian languages, provide the English translation only - no original text
+            - Use quotation marks for official statements, titles, or specific terminology in English only
+            
+            Document: {content[:4000]}
+            
+            Summary (50-60 words, ENGLISH ONLY - NO HINDI OR OTHER INDIAN LANGUAGES):"""
 
     def summarize_document(self, doc: Dict) -> str:
         """Sumariza um documento"""
