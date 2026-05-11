@@ -1,6 +1,6 @@
 # Notas do Dia
 
-Sistema que faz scraping diario de comunicados oficiais do governo da India, gera resumos com IA e envia um boletim HTML formatado por e-mail.
+Sistema que faz scraping diário de comunicados oficiais do governo da Índia, gera resumos com IA e envia um boletim HTML formatado por e-mail.
 
 ## Funcionalidades
 
@@ -10,31 +10,31 @@ Sistema que faz scraping diario de comunicados oficiais do governo da India, ger
 - **MEA Speeches & Statements**
 - **MEA Media Briefings**
 
-### Sumarizacao com IA
-- **Google Gemini 2.5 Flash** para resumos individuais (50-60 palavras, ingles)
-- **Claude Sonnet** para sintese do dia (portugues diplomatico)
-- Classificacao tematica por IA (Gemini)
-- Tags: agricultura, defesa, energia, ciencia/tecnologia, saude, comercio, cooperacao sul-sul, America Latina, Brasil, BRICS, politica indiana, economia indiana
+### Sumarização com IA
+- **Google Gemini 2.5 Flash** para resumos individuais (50-60 palavras, inglês)
+- **Claude Sonnet** para síntese do dia (português diplomático)
+- Classificação temática por IA (Gemini)
+- Tags: agricultura, defesa, energia, ciência/tecnologia, saúde, comércio, cooperação sul-sul, América Latina, Brasil, BRICS, política externa/interna, economia, regiões
 
 ### Email HTML
 - Design com identidade visual da Embaixada do Brasil
-- Sintese narrativa do dia no topo
+- Síntese narrativa do dia no topo
 - Nomes em negrito
-- Tags tematicas coloridas por documento
+- Tags temáticas coloridas por documento
 - Destaque verde + badge para documentos que mencionam o Brasil
-- Contador de documentos por secao
+- Contador de documentos por seção
 - Logo da Embaixada embutida (CID inline)
 
 ### Arquivo
-- Edicoes salvas em `logs/arquivo/`
-- Endpoint `/arquivo` para consultar edicoes anteriores
+- Edições salvas em `logs/arquivo/`
+- Endpoint `/arquivo` para consultar edições anteriores
 
 ### Agendamento
-- **Segunda-feira:** notas de sabado e domingo
-- **Terca a sabado:** notas do dia anterior
+- **Segunda-feira:** notas de sábado e domingo
+- **Terça a sábado:** notas do dia anterior
 - **Domingo:** pula automaticamente
 
-## Configuracao
+## Configuração
 
 ### 1. Clone e instale
 ```bash
@@ -52,8 +52,8 @@ cp config/env.example .env
 
 Edite `.env` com suas credenciais:
 - `SUMMARIZER_PROVIDER=gemini`
-- `GOOGLE_API_KEY` (Gemini, para resumos e classificacao)
-- `ANTHROPIC_API_KEY` (Claude, para sintese do dia)
+- `GOOGLE_API_KEY` (Gemini, para resumos e classificação)
+- `ANTHROPIC_API_KEY` (Claude, para síntese do dia)
 - `EMAIL_USER` / `EMAIL_PASSWORD` (Gmail app password)
 - `EMAIL_FROM` / `EMAIL_TO`
 
@@ -70,8 +70,8 @@ python main.py
 
 - `GET /health` — status
 - `POST /generate` — gerar para hoje
-- `POST /generate/custom` — data especifica (`{"date": "YYYY-MM-DD"}`)
-- `GET /arquivo` — listar edicoes arquivadas
+- `POST /generate/custom` — data específica (`{"date": "YYYY-MM-DD"}`)
+- `GET /arquivo` — listar edições arquivadas
 
 ## Estrutura
 
@@ -103,4 +103,4 @@ notas-do-dia/
 
 ---
 
-**Embaixada do Brasil em Nova Delhi**
+**Embaixada do Brasil em Nova Délhi**
