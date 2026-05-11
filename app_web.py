@@ -145,6 +145,44 @@ def _generate_and_send_daily_notes(target_dates):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+@app.route('/arquivo')
+def arquivo():
+    """List archived editions"""
+    archive_dir = os.path.join(os.getcwd(), 'logs', 'arquivo')
+    if not os.path.exists(archive_dir):
+        return jsonify({"editions": []})
+    files = sorted(
+        [f for f in os.listdir(archive_dir) if f.endswith('.html')],
+        reverse=True,
+    )
+    editions = []
+    for f in files:
+        name = f.replace('notas_', '').replace('.html', '')
+        dates = name.split('_')
+        label = ' e '.join(
+            f"{d[6:8]}/{d[4:6]}/{d[:4]}" for d in dates
+        )
+        editions.append({"file": f, "label": label})
+    html = '<html><head><meta charset="utf-8"><title>Arquivo - Notas do dia</title></head>'
+    html += '<body style="font-family:Helvetica,Arial,sans-serif;max-width:600px;margin:40px auto;padding:0 20px;">'
+    html += '<h1 style="color:#1C2443;">Arquivo &mdash; Notas do dia</h1><ul>'
+    for ed in editions:
+        html += f'<li style="margin:8px 0;"><a href="/arquivo/{ed["file"]}" style="color:#1C2443;">{ed["label"]}</a></li>'
+    if not editions:
+        html += '<li style="color:#999;">Nenhuma edi&ccedil;&atilde;o arquivada ainda.</li>'
+    html += '</ul></body></html>'
+    return html
+
+@app.route('/arquivo/<filename>')
+def arquivo_view(filename):
+    """View a specific archived edition"""
+    archive_dir = os.path.join(os.getcwd(), 'logs', 'arquivo')
+    filepath = os.path.join(archive_dir, filename)
+    if not os.path.exists(filepath) or not filename.endswith('.html'):
+        return "Edição não encontrada.", 404
+    with open(filepath, 'r', encoding='utf-8') as f:
+        return f.read()
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=False)

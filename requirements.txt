@@ -10,7 +10,7 @@ pytz
 loguru
 flask
 gunicorn
-reportlab
+anthropic
 fastapi
 uvicorn
 pydantic

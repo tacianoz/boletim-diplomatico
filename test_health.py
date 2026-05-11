@@ -19,7 +19,7 @@ def test_imports():
         from app.core.date_utils import get_target_dates
         from app.core.scraper_factory import get_mea_scraper, get_pm_scraper
         from app.services.summarizer import Summarizer
-        from app.services.pdf_generator import PDFGenerator
+        from app.services.html_generator import HTMLGenerator
         from app.emailer import send_email
         
         print("✅ Todos os módulos principais importados com sucesso!")

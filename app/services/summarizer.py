@@ -47,6 +47,7 @@ class BaseSummarizer(ABC):
             - Avoid starting every summary with the date (for example: "On March 4, 2026, ..."); vary the opening structure
             - Mention the exact date only when it is diplomatically relevant; otherwise focus on the actors and actions
             - Do not add interpretations or evaluations. Only restate the explicit content of the document in a neutral, factual tone.
+            - Wrap only the person's name (not their title/role) in **double asterisks** (e.g. Prime Minister **Narendra Modi**, External Affairs Minister **S. Jaishankar**).
             
             STRICT LANGUAGE POLICY - CRITICAL:
             - The summary MUST be written ONLY in English
@@ -312,3 +313,61 @@ class Summarizer:
                 output.append("")
 
         return '\n'.join(output)
+
+    def generate_daily_synthesis(self, docs: List[Dict], target_dates=None) -> str:
+        """Generate a short narrative synthesis of the day in diplomatic Portuguese."""
+        titles = [f"- {doc.get('title', '')}" for doc in docs]
+        titles_block = '\n'.join(titles)
+
+        # Determine date context for the prompt
+        if target_dates and len(target_dates) > 1:
+            dates_sorted = sorted(target_dates)
+            date_context = f"no fim de semana de {dates_sorted[0].strftime('%d/%m')} e {dates_sorted[1].strftime('%d/%m')}"
+        elif target_dates:
+            date_context = f"no dia {target_dates[0].strftime('%d/%m/%Y')}"
+        else:
+            date_context = "ontem"
+
+        prompt = f"""Com base nos títulos abaixo, que se referem a acontecimentos {date_context}, redija UM ÚNICO PARÁGRAFO de síntese, com 3 a 4 frases. Use verbos no pretérito (aconteceu ontem, não hoje).
+
+FOCO: política externa indiana, relações bilaterais e multilaterais, e política interna
+no que for pertinente — a agenda do Primeiro-Ministro Modi é sempre relevante.
+Temas prioritários: agricultura, defesa, energia, ciência e tecnologia, comércio e saúde.
+
+ESTILO: registro editorial de grande revista internacional (The Economist, Financial Times, Le Monde Diplomatique) em português do Brasil.
+- Resumo factual e fluido, com leve camada analítica — conecte os fatos ao contexto.
+- Tom sóbrio e informado. Nunca irônico, nunca opinativo, nunca diplomaticamente
+  sensível. O texto deve poder circular em ambiente diplomático sem causar embaraço.
+- Frases curtas, com ritmo.
+- REGRA GRAMATICAL INEGOCIÁVEL: não use gerúndio após vírgula. Em vez de
+  ", reforçando", ", consolidando", ", ampliando" etc., reescreva com pretérito
+  ("e reforçou"), presente ("o que reforça") ou oração subordinada ("ao reforçar").
+  Revise o parágrafo inteiro antes de entregar e elimine qualquer ocorrência.
+- Não mencione a Embaixada, o boletim nem o próprio texto.
+- Coloque nomes próprios de pessoas em negrito usando **asteriscos duplos** (ex: **Narendra Modi**).
+- Ao mencionar valores em rúpias, converta para dólares americanos (taxa aproximada: 1 USD = 85 INR).
+
+Títulos do dia:
+{titles_block}"""
+
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=512,
+                messages=[{
+                    "role": "user",
+                    "content": prompt,
+                }],
+            )
+            synthesis = response.content[0].text.strip()
+            logger.info(f"Síntese gerada via Claude ({len(synthesis)} chars): {synthesis[:100]}...")
+            return synthesis
+        except Exception as e:
+            logger.error(f"Erro ao gerar síntese com Claude: {e}")
+            # Fallback to configured provider
+            response = self._provider._call_api(prompt)
+            if response:
+                return response.strip()
+        return ""

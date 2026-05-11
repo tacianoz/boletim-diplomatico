@@ -6,83 +6,86 @@ Uses new scraper architecture
 from app.core.scraper_factory import get_mea_scraper, get_pm_scraper
 from app.core.date_utils import get_target_dates
 from app.services.summarizer import Summarizer
-from app.services.pdf_generator import PDFGenerator
+from app.services.html_generator import HTMLGenerator
+from app.services.theme_classifier import classify_all
 from app.emailer import send_email
 from app.logger import logger
 from datetime import datetime
 import pytz
+import os
 
 
 def generate_daily_notes(target_dates=None):
     """
     Generate Notas do Dia for target dates
-    
+
     Args:
         target_dates: List of dates to scrape. If None, uses get_target_dates()
-    
+
     Returns:
-        Path to generated PDF file, or None if error
+        HTML string with the email body, or None if error
     """
     logger.info("=== GERANDO NOTAS DO DIA - INDIA ===")
-    
+
     try:
-        # Get target dates (handles Monday logic automatically if not provided)
         if target_dates is None:
             target_dates = get_target_dates()
         logger.info(f"Buscando documentos para datas: {target_dates}")
-        
-        # Get scrapers
+
         mea_scraper = get_mea_scraper()
         pm_scraper = get_pm_scraper()
-        
-        # Collect all documents
+
         all_docs = []
-        
-        # Prime Minister Releases
+
         logger.info("Buscando Prime Minister Releases...")
-        pm_docs = pm_scraper.get_pm_releases(target_dates)
-        all_docs.extend(pm_docs)
-        
-        # MEA Press Releases
+        all_docs.extend(pm_scraper.get_pm_releases(target_dates))
+
         logger.info("Buscando MEA Press Releases...")
-        mea_press = mea_scraper.get_press_releases(target_dates)
-        all_docs.extend(mea_press)
-        
-        # MEA Speeches & Statements
+        all_docs.extend(mea_scraper.get_press_releases(target_dates))
+
         logger.info("Buscando MEA Speeches & Statements...")
-        mea_speeches = mea_scraper.get_speeches_statements(target_dates)
-        all_docs.extend(mea_speeches)
-        
-        # MEA Media Briefings
+        all_docs.extend(mea_scraper.get_speeches_statements(target_dates))
+
         logger.info("Buscando MEA Media Briefings...")
-        mea_briefings = mea_scraper.get_media_briefings(target_dates)
-        all_docs.extend(mea_briefings)
-        
+        all_docs.extend(mea_scraper.get_media_briefings(target_dates))
+
         if not all_docs:
             logger.info("Nenhum documento encontrado para as datas especificadas.")
             return None
-        
+
         logger.info(f"Total de documentos encontrados: {len(all_docs)}")
-        
-        # Generate summaries
-        logger.info("Gerando resumos com Ollama (modelo local)...")
+
+        # Generate summaries (adds 'summary' key to each doc)
         summarizer = Summarizer()
-        report_text = summarizer.compile_report(all_docs)
-        
-        # Generate PDF
-        logger.info("Gerando PDF...")
-        pdf_generator = PDFGenerator()
-        today = datetime.now().date()
-        filename = f"notas_do_dia_{today.strftime('%Y%m%d')}.pdf"
-        pdf_file = pdf_generator.generate(all_docs, report_text, filename)
-        
-        if not pdf_file:
-            logger.error("Erro ao gerar PDF")
-            return None
-        
-        logger.info(f"PDF gerado com sucesso: {pdf_file}")
-        return pdf_file
-        
+        summarizer.compile_report(all_docs)
+
+        # Classify documents by theme
+        logger.info("Classificando documentos por tema...")
+        classify_all(all_docs)
+        brasil_count = sum(1 for d in all_docs if d.get('brasil'))
+        if brasil_count:
+            logger.info(f"Documentos relacionados ao Brasil: {brasil_count}")
+
+        # Generate daily synthesis in diplomatic Portuguese
+        logger.info("Gerando síntese do dia...")
+        synthesis = summarizer.generate_daily_synthesis(all_docs, target_dates)
+
+        # Generate HTML email body
+        logger.info("Gerando HTML...")
+        html_generator = HTMLGenerator()
+        html = html_generator.generate(all_docs, target_dates, synthesis)
+
+        # Save to archive
+        archive_dir = os.path.join(os.getcwd(), 'logs', 'arquivo')
+        os.makedirs(archive_dir, exist_ok=True)
+        dates_str = '_'.join(d.strftime('%Y%m%d') for d in sorted(target_dates))
+        archive_path = os.path.join(archive_dir, f'notas_{dates_str}.html')
+        with open(archive_path, 'w', encoding='utf-8') as f:
+            f.write(html)
+        logger.info(f"Edição salva no arquivo: {archive_path}")
+
+        return html
+
     except Exception as e:
         logger.error(f"Erro ao gerar Notas do Dia: {e}")
         import traceback
@@ -94,47 +97,37 @@ def generate_and_send():
     """Generate Notas do Dia and send via email"""
     from app.config import TIMEZONE
     import pytz
-    
-    # Check if today is Sunday - skip if it is (Heroku Scheduler runs daily)
+
     tz = pytz.timezone(TIMEZONE)
     today = datetime.now(tz).date()
-    weekday = today.weekday()  # 0=segunda, 1=terça, ..., 6=domingo
-    
-    if weekday == 6:  # Domingo
+
+    if today.weekday() == 6:  # Domingo
         logger.info("Domingo detectado - pulando geração (roda apenas de segunda a sábado)")
         return False
-    
-    # Get target dates first to use in email
+
     target_dates = get_target_dates()
-    pdf_file = generate_daily_notes(target_dates)
-    
-    if not pdf_file:
-        logger.error("Não foi possível gerar o PDF")
+    html_body = generate_daily_notes(target_dates)
+
+    if not html_body:
+        logger.error("Não foi possível gerar o HTML")
         return False
-    
+
     try:
-        # Format date for email - handle multiple dates (e.g., Saturday and Sunday on Monday)
         if len(target_dates) > 1:
-            # Multiple dates: show range (e.g., "23 e 24/11/2025")
-            dates_str = " e ".join([d.strftime('%d/%m/%Y') for d in sorted(target_dates)])
-            date_str = dates_str
+            date_str = " e ".join([d.strftime('%d/%m/%Y') for d in sorted(target_dates)])
         else:
-            # Single date
             publication_date = target_dates[0] if target_dates else datetime.now().date()
             date_str = publication_date.strftime('%d/%m/%Y')
-        
-        email_subject = f"Notas do dia - {date_str}"
-        email_body = f"Seguem as notas do dia do governo indiano publicadas em {date_str}."
-        
+
         send_email(
-            subject=email_subject,
-            body=email_body,
-            attachment_path=pdf_file
+            subject=f"Notas do dia - {date_str}",
+            body=f"Notas do Dia - {date_str}",
+            html_body=html_body,
         )
-        
+
         logger.info("E-mail enviado com sucesso!")
         return True
-        
+
     except Exception as e:
         logger.error(f"Erro ao enviar e-mail: {e}")
         return False
