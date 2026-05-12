@@ -52,6 +52,9 @@ Tags disponíveis (use SOMENTE estas, exatamente como escritas):
 Regras:
 - Atribua apenas tags realmente pertinentes ao conteúdo. Nem todo documento terá tags.
 - "Brasil" = menciona Brasil, brasileiros ou relações com o Brasil.
+- Tags regionais (Europa, Ásia, África, América Latina, América do Norte, Oceania,
+  Oriente Médio) só devem ser usadas em documentos de política externa. Documentos
+  de política interna indiana não recebem tag regional.
 - Responda SOMENTE com um JSON array, sem markdown, sem explicação.
 - Formato: [{{"id": 0, "tags": ["Tag1", "Tag2"]}}, ...]
 
