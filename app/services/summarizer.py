@@ -328,14 +328,27 @@ class Summarizer:
         else:
             date_context = "ontem"
 
-        prompt = f"""Com base nos títulos abaixo, que se referem a acontecimentos {date_context}, redija UM ÚNICO PARÁGRAFO de síntese, com 3 a 4 frases. Use verbos no pretérito (aconteceu ontem, não hoje).
+        prompt = f"""Com base nos títulos abaixo, que se referem a acontecimentos {date_context}, redija uma síntese dividida em duas partes. Use verbos no pretérito (aconteceu ontem, não hoje).
 
-FOCO: política externa indiana, relações bilaterais e multilaterais, e política interna
-no que for pertinente — a agenda do Primeiro-Ministro Modi é sempre relevante.
+FORMATO OBRIGATÓRIO (use exatamente estas marcações):
+[INTERNA]
+2 a 3 frases sobre política interna: agenda do PM Modi, decisões de gabinete,
+inaugurações, política doméstica. Se não houver conteúdo relevante, omita esta seção.
+
+[EXTERNA]
+2 a 3 frases sobre política externa: relações bilaterais, multilaterais, visitas,
+declarações conjuntas, posicionamentos internacionais. Se não houver conteúdo relevante, omita esta seção.
+
+FOCO: a agenda do Primeiro-Ministro Modi é sempre relevante.
 Temas prioritários: agricultura, defesa, energia, ciência e tecnologia, comércio e saúde.
 
-ESTILO: registro editorial de grande revista internacional (The Economist, Financial Times, Le Monde Diplomatique) em português do Brasil.
-- Resumo factual e fluido, com leve camada analítica — conecte os fatos ao contexto.
+ESTILO: registro editorial de grande revista internacional (The Economist, Financial Times)
+em português do Brasil.
+- Resumo FACTUAL. Relate o que aconteceu, ponto. Não adicione interpretações genéricas
+  como "o que sinaliza...", "em movimento que reflete...", "o que reforça o compromisso...".
+  Esse tipo de análise rasa enche linguiça e não agrega informação.
+- Análise SOMENTE quando for substantiva e puder ser extraída diretamente do conteúdo
+  das notas — nunca como arremate vago de frase.
 - Tom sóbrio e informado. Nunca irônico, nunca opinativo, nunca diplomaticamente
   sensível. O texto deve poder circular em ambiente diplomático sem causar embaraço.
 - Frases curtas, com ritmo.

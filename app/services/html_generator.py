@@ -171,19 +171,65 @@ class HTMLGenerator:
         return html
 
     def _build_synthesis(self, synthesis: str) -> str:
+        sections = self._parse_synthesis_sections(synthesis)
+        blocks = []
+        for label, text in sections:
+            formatted = self._format_bold(text.strip())
+            blocks.append(f"""\
+    <p style="margin:{'16px' if blocks else '0'} 0 4px 0;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#1C2443;font-family:Helvetica,Arial,sans-serif;font-weight:700;">
+      {escape(label)}
+    </p>
+    <p style="margin:0;font-size:15px;line-height:1.8;color:#3d4050;font-family:Georgia,'Times New Roman',Times,serif;">
+      {formatted}
+    </p>""")
+        content = '\n'.join(blocks)
+
         return f"""\
 <tr><td style="padding:28px 40px 0 40px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
   <tr><td style="padding:20px 24px;background-color:#fdf8e8;border-radius:6px;border-left:3px solid #E8C72C;">
-    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:#1C2443;font-family:Helvetica,Arial,sans-serif;font-weight:700;">
+    <p style="margin:0 0 12px 0;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:#E8C72C;font-family:Helvetica,Arial,sans-serif;font-weight:700;">
       S&iacute;ntese do dia
     </p>
-    <p style="margin:0;font-size:15px;line-height:1.8;color:#3d4050;font-family:Georgia,'Times New Roman',Times,serif;">
-      {self._format_bold(synthesis)}
-    </p>
+{content}
   </td></tr>
   </table>
 </td></tr>"""
+
+    def _parse_synthesis_sections(self, synthesis: str):
+        """Parse [INTERNA] and [EXTERNA] sections from synthesis text."""
+        sections = []
+        current_label = None
+        current_text = []
+
+        for line in synthesis.split('\n'):
+            stripped = line.strip()
+            if stripped == '[INTERNA]':
+                if current_label and current_text:
+                    sections.append((current_label, ' '.join(current_text)))
+                current_label = 'Pol\u00edtica Interna'
+                current_text = []
+            elif stripped == '[EXTERNA]':
+                if current_label and current_text:
+                    sections.append((current_label, ' '.join(current_text)))
+                current_label = 'Pol\u00edtica Externa'
+                current_text = []
+            elif stripped:
+                if current_label:
+                    current_text.append(stripped)
+                else:
+                    # No section marker — treat as single block
+                    current_label = 'S\u00edntese'
+                    current_text.append(stripped)
+
+        if current_label and current_text:
+            sections.append((current_label, ' '.join(current_text)))
+
+        # Fallback: if no sections parsed, return whole text
+        if not sections:
+            sections.append(('S\u00edntese', synthesis))
+
+        return sections
 
     def _format_bold(self, text: str) -> str:
         """Escape HTML but preserve **bold** markdown as <b> tags."""
