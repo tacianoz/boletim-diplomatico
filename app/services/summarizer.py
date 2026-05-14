@@ -367,7 +367,7 @@ Títulos do dia:
             import anthropic
             client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
             response = client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-opus-4-7",
                 max_tokens=512,
                 messages=[{
                     "role": "user",

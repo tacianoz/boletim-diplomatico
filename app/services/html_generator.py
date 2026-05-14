@@ -95,7 +95,7 @@ class HTMLGenerator:
 <tr><td align="center" style="padding:40px 16px;">
 
 <!-- Card -->
-<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+<table role="presentation" width="680" cellpadding="0" cellspacing="0" style="max-width:680px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
 
 <!-- Navy header with logo left + title right -->
 <tr><td style="background-color:#1C2443;padding:0;">
@@ -232,9 +232,11 @@ class HTMLGenerator:
         return sections
 
     def _format_bold(self, text: str) -> str:
-        """Escape HTML but preserve **bold** markdown as <b> tags."""
+        """Escape HTML; convert **bold** to <b> and *italic* to <i>."""
         escaped = escape(text)
-        return re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', escaped)
+        escaped = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', escaped)
+        escaped = re.sub(r'\*(.+?)\*', r'<i>\1</i>', escaped)
+        return escaped
 
     def _build_sections(self, grouped: Dict[str, List[Dict]]) -> str:
         parts = []
