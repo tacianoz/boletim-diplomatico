@@ -13,6 +13,27 @@ from app.logger import logger
 from datetime import datetime
 import pytz
 import os
+import glob
+
+
+def _load_previous_synthesis(archive_dir: str, current_dates_str: str) -> str | None:
+    """Lê a síntese mais recente em `archive_dir` que seja de um dia anterior ao atual.
+    Retorna None se não houver, sem erro — primeira execução é caso esperado."""
+    pattern = os.path.join(archive_dir, 'notas_*.synthesis.txt')
+    candidates = sorted(glob.glob(pattern))
+    for path in reversed(candidates):
+        filename = os.path.basename(path)
+        # Extrai a parte de datas: notas_YYYYMMDD[...].synthesis.txt
+        dates_part = filename[len('notas_'):-len('.synthesis.txt')]
+        if dates_part >= current_dates_str:
+            # Mesmo dia ou posterior — ignora (re-execução do mesmo dia)
+            continue
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                return f.read().strip()
+        except OSError:
+            continue
+    return None
 
 
 def generate_daily_notes(target_dates=None):
@@ -66,23 +87,36 @@ def generate_daily_notes(target_dates=None):
         if brasil_count:
             logger.info(f"Documentos relacionados ao Brasil: {brasil_count}")
 
+        # Pega a síntese mais recente do arquivo (de um dia anterior) pra dar
+        # continuidade ao modelo.
+        archive_dir = os.path.join(os.getcwd(), 'logs', 'arquivo')
+        os.makedirs(archive_dir, exist_ok=True)
+        dates_str = '_'.join(d.strftime('%Y%m%d') for d in sorted(target_dates))
+        previous_synthesis = _load_previous_synthesis(archive_dir, dates_str)
+        if previous_synthesis:
+            logger.info("Síntese anterior carregada como contexto de continuidade")
+
         # Generate daily synthesis in diplomatic Portuguese
         logger.info("Gerando síntese do dia...")
-        synthesis = summarizer.generate_daily_synthesis(all_docs, target_dates)
+        synthesis = summarizer.generate_daily_synthesis(
+            all_docs, target_dates, previous_synthesis=previous_synthesis
+        )
 
         # Generate HTML email body
         logger.info("Gerando HTML...")
         html_generator = HTMLGenerator()
         html = html_generator.generate(all_docs, target_dates, synthesis)
 
-        # Save to archive
-        archive_dir = os.path.join(os.getcwd(), 'logs', 'arquivo')
-        os.makedirs(archive_dir, exist_ok=True)
-        dates_str = '_'.join(d.strftime('%Y%m%d') for d in sorted(target_dates))
+        # Save to archive (HTML + raw synthesis text para continuidade futura)
         archive_path = os.path.join(archive_dir, f'notas_{dates_str}.html')
         with open(archive_path, 'w', encoding='utf-8') as f:
             f.write(html)
         logger.info(f"Edição salva no arquivo: {archive_path}")
+
+        if synthesis:
+            synthesis_path = os.path.join(archive_dir, f'notas_{dates_str}.synthesis.txt')
+            with open(synthesis_path, 'w', encoding='utf-8') as f:
+                f.write(synthesis)
 
         return html
 

@@ -217,10 +217,14 @@ class GeminiSummarizer(BaseSummarizer):
             else:
                 full_prompt = prompt
 
+            # thinking_budget=0 desliga o "thinking" do Gemini 2.5: sem isso, o
+            # orçamento de max_output_tokens é dividido entre raciocínio interno
+            # e texto visível, e a saída sai truncada no meio da frase.
             config = self._types.GenerateContentConfig(
                 temperature=0.7,
                 top_p=0.9,
                 max_output_tokens=2048,
+                thinking_config=self._types.ThinkingConfig(thinking_budget=0),
             )
 
             response = self.client.models.generate_content(
@@ -314,10 +318,22 @@ class Summarizer:
 
         return '\n'.join(output)
 
-    def generate_daily_synthesis(self, docs: List[Dict], target_dates=None) -> str:
+    def generate_daily_synthesis(self, docs: List[Dict], target_dates=None, previous_synthesis: str = None) -> str:
         """Generate a short narrative synthesis of the day in diplomatic Portuguese."""
-        titles = [f"- {doc.get('title', '')}" for doc in docs]
-        titles_block = '\n'.join(titles)
+        # Monta o bloco de contexto com título + conteúdo de cada nota (truncado
+        # em 3000 chars por nota pra controlar o tamanho do prompt; mesma ordem
+        # de grandeza do truncamento usado pelo summarizer por nota).
+        notes_blocks = []
+        for doc in docs:
+            title = doc.get('title', '').strip()
+            content = (doc.get('content') or '').strip()
+            tipo = doc.get('tipo', '')
+            if len(content) > 3000:
+                content = content[:3000].rstrip() + ' […]'
+            notes_blocks.append(
+                f"### [{tipo}] {title}\n{content}" if content else f"### [{tipo}] {title}\n(sem conteúdo extraído)"
+            )
+        titles_block = '\n\n'.join(notes_blocks)
 
         # Determine date context for the prompt
         if target_dates and len(target_dates) > 1:
@@ -328,22 +344,43 @@ class Summarizer:
         else:
             date_context = "ontem"
 
-        prompt = f"""Com base nos títulos abaixo, que se referem a acontecimentos {date_context}, redija uma síntese dividida em duas partes. Use verbos no pretérito (aconteceu ontem, não hoje).
+        prompt = f"""CONTEXTO: você está redigindo a síntese de abertura do boletim diário da Embaixada do Brasil em Nova Délhi. O boletim compila as notas à imprensa publicadas {date_context} pelo Gabinete do Primeiro-Ministro da Índia (PMO/PIB) e pelo Ministério das Relações Exteriores indiano (MEA) — comunicados, discursos, briefings e declarações oficiais. A síntese serve para que diplomatas brasileiros lotados em Nova Délhi tenham, em poucos segundos de leitura, o panorama do que o governo indiano comunicou no dia anterior.
 
-FORMATO OBRIGATÓRIO (use exatamente estas marcações):
-[INTERNA]
-2 a 3 frases sobre política interna: agenda do PM Modi, decisões de gabinete,
-inaugurações, política doméstica. Se não houver conteúdo relevante, omita esta seção.
+Com base nas notas abaixo, redija essa síntese em UM ÚNICO parágrafo, fluido e articulado, com NO MÁXIMO 180 palavras. Em dias com pouca informação, use menos.
 
-[EXTERNA]
-2 a 3 frases sobre política externa: relações bilaterais, multilaterais, visitas,
-declarações conjuntas, posicionamentos internacionais. Se não houver conteúdo relevante, omita esta seção.
+CONTROLE DE TAMANHO — leia com atenção:
+- O parágrafo deve estar SEMPRE completo e bem terminado. Nunca interrompa no meio de uma frase, nunca deixe pensamento por concluir, nunca encerre com reticências para sugerir que falta algo.
+- O teto de 180 palavras é alcançado por SELEÇÃO no momento da composição, não por corte ao final. Planeje o parágrafo já enxuto: escolha quais fatos entram e quais ficam de fora antes de começar a escrever.
+- Quando as notas trouxerem muitos detalhes (listas longas de países, datas específicas, citações, sub-temas), priorize o que é diplomaticamente relevante para a Embaixada do Brasil e descarte os secundários. Em dias densos, é melhor entregar menos fatos bem articulados do que muitos fatos espremidos.
+- Se ao revisar você perceber que passou de 180 palavras, reescreva o parágrafo do zero com escopo menor — não trunque o que existe.
+
+ESCOPO:
+- O parágrafo cobre os acontecimentos registrados nas notas e, quando estas mencionarem visitas previstas, reuniões agendadas, viagens anunciadas ou eventos futuros, incorpora essa perspectiva prospectiva no fluxo do texto.
+- Você tem liberdade editorial para organizar o parágrafo da forma que melhor dê conta do dia — por tema, por ator, por sequência cronológica ou pela tensão dominante. Use o critério de um bom editor de revista internacional.
+- Não invente expectativas que não estejam nas notas.
+
+TEMPO VERBAL: deixe-se guiar pelo conteúdo de cada nota.
+- Para o que já aconteceu, pretérito ("recebeu", "anunciou", "declarou").
+- Para visitas, reuniões e eventos futuros mencionados nas notas, futuro ou perífrases prospectivas ("viajará", "está prevista", "deve ocorrer", "receberá nos próximos dias").
+- Para posicionamentos e políticas ainda vigentes, presente quando soar natural ("reafirma", "mantém").
+- Não force um único tempo verbal sobre o parágrafo todo.
 
 FOCO: a agenda do Primeiro-Ministro Modi é sempre relevante.
 Temas prioritários: agricultura, defesa, energia, ciência e tecnologia, comércio e saúde.
 
+ABERTURA: o parágrafo pode começar com uma frase introdutória, mas ela precisa ter conteúdo analítico próprio — nomear a tensão central, o eixo geopolítico ou o vetor que organiza o dia, em formulação que só faça sentido para AQUELE dia específico (se a mesma frase pudesse abrir o boletim de outro dia qualquer, ela é genérica demais). NUNCA use molduras vagas e clichês como "Em dia de intensa atividade diplomática…", "A jornada diplomática indiana concentrou-se…", "O dia foi dominado por…", "Em mais um dia agitado…", "A diplomacia indiana teve como eixo…", "A agenda diplomática do dia…". Esse tipo de abertura preenche linha sem informar.
+- Se nenhuma abertura analítica surgir naturalmente do material, comece direto no fato mais relevante (ator + ação concreta), sem moldura.
+
 ESTILO: registro editorial de grande revista internacional (The Economist, Financial Times)
-em português do Brasil.
+em português do Brasil — NÃO em português europeu.
+- Use "Ministro das Relações Exteriores" (não "Negócios Estrangeiros"), "Países Baixos"
+  está ok mas prefira "Holanda" quando couber, "Reino Unido", "Estados Unidos".
+- Evite construções lusitanas como "a Índia a sediar" (use "a Índia sediou" ou
+  "que sediou"), "a fazer", "encontra-se a discutir". Em PT-BR: gerúndio comum
+  ("está discutindo") ou pretérito direto.
+- Não capitalize cargos genéricos no meio da frase ("porta-voz", "ministro",
+  "embaixadora") — só o nome próprio. Exceção: "Primeiro-Ministro" e nomes de
+  órgãos oficiais como "Ministério das Relações Exteriores".
 - Resumo FACTUAL. Relate o que aconteceu, ponto. Não adicione interpretações genéricas
   como "o que sinaliza...", "em movimento que reflete...", "o que reforça o compromisso...".
   Esse tipo de análise rasa enche linguiça e não agrega informação.
@@ -351,30 +388,58 @@ em português do Brasil.
   das notas — nunca como arremate vago de frase.
 - Tom sóbrio e informado. Nunca irônico, nunca opinativo, nunca diplomaticamente
   sensível. O texto deve poder circular em ambiente diplomático sem causar embaraço.
-- Frases curtas, com ritmo.
+- Frases curtas, com ritmo. Articule as transições entre os fatos com conectivos
+  sóbrios (no mesmo dia, em paralelo, à margem, ainda, além disso) — sem listar.
 - REGRA GRAMATICAL INEGOCIÁVEL: não use gerúndio após vírgula. Em vez de
   ", reforçando", ", consolidando", ", ampliando" etc., reescreva com pretérito
   ("e reforçou"), presente ("o que reforça") ou oração subordinada ("ao reforçar").
   Revise o parágrafo inteiro antes de entregar e elimine qualquer ocorrência.
 - Não mencione a Embaixada, o boletim nem o próprio texto.
 - Coloque nomes próprios de pessoas em negrito usando **asteriscos duplos** (ex: **Narendra Modi**).
-- Ao mencionar valores em rúpias, converta para dólares americanos (taxa aproximada: 1 USD = 85 INR).
+- Ao mencionar valores em rúpias, converta para dólares americanos (taxa aproximada: 1 USD = 95 INR).
 
-Títulos do dia:
+Devolva apenas o parágrafo, sem títulos, sem marcadores, sem cabeçalhos.{self._previous_synthesis_block(previous_synthesis)}
+
+Notas do dia (título + conteúdo integral, cada nota separada por "###"):
 {titles_block}"""
 
         try:
             import anthropic
-            client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
-            response = client.messages.create(
-                model="claude-opus-4-7",
-                max_tokens=512,
-                messages=[{
-                    "role": "user",
-                    "content": prompt,
-                }],
+            import time
+            # max_retries=4 + backoff manual em 529 (overloaded): o SDK já retenta
+            # 5xx, mas com backoff curto. Em janelas de sobrecarga da API,
+            # esperar mais tempo entre tentativas tem taxa de sucesso muito maior.
+            client = anthropic.Anthropic(
+                api_key=os.getenv('ANTHROPIC_API_KEY'),
+                max_retries=4,
             )
-            synthesis = response.content[0].text.strip()
+
+            synthesis = None
+            last_error = None
+            for attempt, delay in enumerate([0, 15, 45]):
+                if delay:
+                    time.sleep(delay)
+                try:
+                    response = client.messages.create(
+                        model="claude-opus-4-7",
+                        max_tokens=1024,
+                        messages=[{
+                            "role": "user",
+                            "content": prompt,
+                        }],
+                    )
+                    synthesis = response.content[0].text.strip()
+                    break
+                except anthropic.APIStatusError as e:
+                    last_error = e
+                    if e.status_code in (429, 529, 503):
+                        logger.warning(f"Claude {e.status_code} na tentativa {attempt + 1}, retentando...")
+                        continue
+                    raise
+
+            if synthesis is None:
+                raise last_error or RuntimeError("Claude retornou vazio após retries")
+
             logger.info(f"Síntese gerada via Claude ({len(synthesis)} chars): {synthesis[:100]}...")
             return synthesis
         except Exception as e:
@@ -384,3 +449,16 @@ Títulos do dia:
             if response:
                 return response.strip()
         return ""
+
+    def _previous_synthesis_block(self, previous_synthesis: str) -> str:
+        """Bloco opcional com a síntese do boletim anterior, para continuidade."""
+        if not previous_synthesis or not previous_synthesis.strip():
+            return ""
+        return f"""
+
+CONTINUIDADE — síntese do boletim anterior (último dia útil), reproduzida abaixo apenas como pano de fundo:
+\"\"\"
+{previous_synthesis.strip()}
+\"\"\"
+
+Use essa síntese para situar-se, evitar repetir construções idênticas e, quando fizer sentido, articular conexões com os acontecimentos de hoje (ex.: visita anunciada ontem que se realiza hoje, declaração que ganha novo desdobramento). NÃO repita os fatos do dia anterior — eles já são conhecidos do leitor. A síntese anterior é contexto, não conteúdo a ser reportado."""
