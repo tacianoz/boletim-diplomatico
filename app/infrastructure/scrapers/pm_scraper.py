@@ -200,7 +200,25 @@ class PMScraper(BaseScraper):
             return ""
 
     def _fetch_with_selenium(self, target_dates: List[date]) -> List[Dict]:
-        """Fetch PM documents using Selenium with month selection"""
+        """Fetch PM documents via Selenium, com 1 retry em caso de falha."""
+        max_attempts = 2
+        for attempt in range(1, max_attempts + 1):
+            try:
+                return self._fetch_with_selenium_attempt(target_dates)
+            except Exception as e:
+                if attempt < max_attempts:
+                    logger.warning(
+                        f"Selenium falhou (tentativa {attempt}/{max_attempts}): {e}. "
+                        f"Tentando novamente em 30s..."
+                    )
+                    time.sleep(30)
+                else:
+                    logger.error(f"Selenium falhou após {max_attempts} tentativas: {e}")
+                    return []
+        return []
+
+    def _fetch_with_selenium_attempt(self, target_dates: List[date]) -> List[Dict]:
+        """Uma tentativa de Selenium: busca documentos do PM com seleção de mês."""
         from selenium import webdriver
         from selenium.webdriver.common.by import By
         from selenium.webdriver.support.ui import WebDriverWait
@@ -399,11 +417,9 @@ class PMScraper(BaseScraper):
             return docs
                 
         except Exception as e:
-            error_msg = str(e)
-            logger.error(f"Erro no Selenium: {error_msg}")
             import traceback
             logger.debug(f"Traceback completo: {traceback.format_exc()}")
-            return []
+            raise
         finally:
             if driver:
                 try:
