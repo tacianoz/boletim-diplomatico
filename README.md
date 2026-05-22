@@ -5,14 +5,15 @@ Sistema que faz scraping diário de comunicados oficiais do governo da Índia, g
 ## Funcionalidades
 
 ### Scraping
-- **Prime Minister Releases** (PIB, via Selenium)
+- **Prime Minister Releases** (PIB) — HTTP direto para o mês corrente, Selenium com `pageLoadStrategy=eager` como fallback para outros meses ou se o HTTP falhar
 - **MEA Press Releases**
 - **MEA Speeches & Statements**
 - **MEA Media Briefings**
 
 ### Sumarização com IA
 - **Google Gemini 2.5 Flash** para resumos individuais (50-60 palavras, inglês)
-- **Claude Sonnet** para síntese do dia (português diplomático)
+- **Claude Opus 4.7** para síntese do dia (português diplomático, parágrafo único)
+- Contexto de continuidade: as 3 sínteses anteriores são incluídas no prompt em ordem cronológica, para que a síntese articule ciclos diplomáticos que se desdobram ao longo da semana
 - Classificação temática por IA (Gemini)
 - Tags: agricultura, defesa, energia, ciência/tecnologia, saúde, comércio, cooperação sul-sul, América Latina, Brasil, BRICS, política externa/interna, economia, regiões
 
@@ -55,7 +56,8 @@ Edite `.env` com suas credenciais:
 - `GOOGLE_API_KEY` (Gemini, para resumos e classificação)
 - `ANTHROPIC_API_KEY` (Claude, para síntese do dia)
 - `EMAIL_USER` / `EMAIL_PASSWORD` (Gmail app password)
-- `EMAIL_FROM` / `EMAIL_TO`
+- `EMAIL_FROM` / `EMAIL_TO` (destinatários principais separados por vírgula)
+- `EMAIL_CC` (opcional, destinatários em cópia)
 
 ### 3. Execute
 ```bash
