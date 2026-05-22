@@ -3,7 +3,7 @@ Prime Minister Scraper for PM Office Releases
 """
 from bs4 import BeautifulSoup
 from datetime import datetime, date
-from typing import List, Dict
+from typing import List, Dict, Optional
 from app.logger import logger
 from app.config import PM_RELEASES_URL, SELENIUM_WAIT_TIME
 from app.infrastructure.scrapers.base_scraper import BaseScraper
@@ -125,7 +125,12 @@ class PMScraper(BaseScraper):
                 else:
                     logger.debug(f"Documento fora do range: {title[:50]}... - {doc_date} (procurando: {target_dates})")
             elif title and link:
-                logger.warning(f"⚠️ Documento sem data encontrado: {title[:50]}...")
+                # Só alerta se tinha "Posted on:" (era pra ser um release mas falhou extração).
+                # Sem "Posted on:" é item de sidebar/menu (ministérios, Tenders, Home, etc) - ignora.
+                if 'Posted on:' in item_text:
+                    logger.warning(f"⚠️ Release com data não-parseável: {title[:50]}...")
+                else:
+                    logger.debug(f"Item de navegação ignorado: {title[:50]}...")
         
         logger.info(f"Total de documentos PM encontrados para {target_dates}: {len(docs)}")
         return docs
@@ -199,9 +204,66 @@ class PMScraper(BaseScraper):
             logger.error(f"Erro ao extrair conteúdo de {url}: {e}")
             return ""
 
+    def _build_iframe_url(self, detail_url: str) -> str:
+        """Transforma URL de detalhe (PressReleseDetail.aspx) na URL do iframe (PressReleasePage.aspx)
+        que contém o conteúdo do release sem precisar de JavaScript."""
+        iframe_url = re.sub(r'PressReleseDetail\.aspx', 'PressReleasePage.aspx', detail_url)
+        if 'lang=' not in iframe_url:
+            iframe_url = iframe_url + ('&' if '?' in iframe_url else '?') + 'lang=1'
+        else:
+            iframe_url = re.sub(r'lang=\d+', 'lang=1', iframe_url)
+        return iframe_url
+
+    def _extract_content_via_http(self, detail_url: str) -> str:
+        """Extrai o conteúdo de um release PIB via HTTP direto (sem Selenium).
+        Busca o iframe PressReleasePage.aspx que contém o texto completo."""
+        iframe_url = self._build_iframe_url(detail_url)
+        html = self.fetch_page(iframe_url)
+        if html:
+            soup = BeautifulSoup(html, 'html.parser')
+            for tag in soup(['script', 'style', 'nav', 'header', 'footer']):
+                tag.decompose()
+            text = soup.get_text(separator=' ', strip=True)
+            if text and len(text) > 100:
+                return text
+
+        # Fallback: og:description da página de detalhe
+        detail_html = self.fetch_page(detail_url)
+        if detail_html:
+            soup = BeautifulSoup(detail_html, 'html.parser')
+            og = soup.find('meta', property='og:description')
+            if og and og.get('content'):
+                return og.get('content')
+        return ""
+
+    def _fetch_via_http(self, target_dates: List[date]) -> Optional[List[Dict]]:
+        """Busca PM releases via HTTP direto.
+
+        O endpoint PMContents.aspx já devolve todo o mês corrente sem precisar de postback.
+        Retorna None se a página não carregou ou veio com estrutura inesperada (sinaliza fallback)."""
+        logger.info("Tentando buscar PM releases via HTTP direto...")
+        html = self.fetch_page(PM_RELEASES_URL)
+        if not html:
+            logger.warning("HTTP direto falhou - nenhum HTML retornado")
+            return None
+        if 'Posted on:' not in html:
+            logger.warning("HTTP direto retornou página sem 'Posted on:' - estrutura inesperada")
+            return None
+
+        docs = self._parse_pm_documents(html, target_dates)
+        logger.info(f"HTTP direto encontrou {len(docs)} documentos para {target_dates}")
+
+        for i, doc in enumerate(docs):
+            logger.info(f"Extraindo conteúdo via HTTP [{i+1}/{len(docs)}]: {doc['title'][:50]}...")
+            content = self._extract_content_via_http(doc['link'])
+            doc['content'] = content if content else "Content not available for this document."
+
+        return docs
+
     def _fetch_with_selenium(self, target_dates: List[date]) -> List[Dict]:
-        """Fetch PM documents via Selenium, com 1 retry em caso de falha."""
-        max_attempts = 2
+        """Fetch PM documents via Selenium, com retries em caso de falha."""
+        max_attempts = 3
+        retry_wait = 15
         for attempt in range(1, max_attempts + 1):
             try:
                 return self._fetch_with_selenium_attempt(target_dates)
@@ -209,9 +271,9 @@ class PMScraper(BaseScraper):
                 if attempt < max_attempts:
                     logger.warning(
                         f"Selenium falhou (tentativa {attempt}/{max_attempts}): {e}. "
-                        f"Tentando novamente em 30s..."
+                        f"Tentando novamente em {retry_wait}s..."
                     )
-                    time.sleep(30)
+                    time.sleep(retry_wait)
                 else:
                     logger.error(f"Selenium falhou após {max_attempts} tentativas: {e}")
                     return []
@@ -237,6 +299,9 @@ class PMScraper(BaseScraper):
         try:
             # Configurar Chrome (igual à implementação que funcionava)
             chrome_options = self.get_selenium_options()
+            # Estratégia "eager": retornar quando DOMContentLoaded disparar, sem esperar
+            # analytics/scripts terceiros que travavam o load até estourar o timeout.
+            chrome_options.page_load_strategy = 'eager'
             
             # Configurar ChromeDriver - tentar usar o do sistema primeiro
             from selenium.webdriver.chrome.service import Service
@@ -428,28 +493,38 @@ class PMScraper(BaseScraper):
                     pass
     
     def get_pm_releases(self, target_dates: List[date]) -> List[Dict]:
-        """Get Prime Minister Releases for target dates"""
+        """Get Prime Minister Releases for target dates.
+
+        Estratégia em camadas:
+        1. HTTP direto quando todas as datas-alvo são do mês corrente (caso comum).
+           O endpoint PMContents.aspx já mostra o mês inteiro sem precisar de postback.
+        2. Selenium como fallback: para troca de mês (rollover) ou se HTTP falhar.
+        """
         logger.info(f"Buscando Prime Minister Releases para datas: {target_dates}")
-        
-        # Sempre usar Selenium para PM scraper devido a problemas de redirects no site
-        logger.info("Usando Selenium para PM scraper (site tem problemas de redirects)")
+
+        tz = pytz.timezone(self.timezone)
+        current_month = datetime.now(tz).month
+        all_current_month = (
+            bool(target_dates) and all(d.month == current_month for d in target_dates)
+        )
+
+        if all_current_month:
+            try:
+                docs = self._fetch_via_http(target_dates)
+                if docs is not None:
+                    logger.info(f"✅ HTTP direto bem-sucedido: {len(docs)} Prime Minister Releases")
+                    return docs
+            except Exception as e:
+                logger.warning(f"HTTP direto lançou exceção, tentando Selenium: {e}")
+        else:
+            logger.info("Datas-alvo fora do mês atual - pulando HTTP direto, usando Selenium")
+
+        logger.info("Usando Selenium como fallback para PM scraper")
         try:
-            # _fetch_with_selenium já extrai o conteúdo de cada documento
             docs = self._fetch_with_selenium(target_dates)
         except Exception as e:
             logger.error(f"Erro ao usar Selenium para PM scraper: {e}")
-            # Fallback: tentar busca normal (sem conteúdo completo)
-            logger.warning("Tentando busca normal como fallback...")
-            html = self.fetch_page(PM_RELEASES_URL)
-            if not html:
-                logger.error("Falha também na busca normal")
-                return []
-            docs = self._parse_pm_documents(html, target_dates)
-            # Fallback: buscar conteúdo com método antigo
-            for doc in docs:
-                doc['content'] = self.extract_content(doc['link'])
-                if not doc['content']:
-                    doc['content'] = "Content not available for this document."
+            docs = []
 
         logger.info(f"Encontrados {len(docs)} Prime Minister Releases")
         return docs
