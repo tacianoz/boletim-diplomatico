@@ -10,6 +10,7 @@ EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_FROM = os.getenv('EMAIL_FROM')
 EMAIL_TO = os.getenv('EMAIL_TO')
+EMAIL_CC = os.getenv('EMAIL_CC', '')
 
 MODEL_PATH = os.getenv('MODEL_PATH')
 MODEL_NAME = os.getenv('MODEL_NAME')

@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.base import MIMEBase
 from email import encoders
-from app.config import EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD, EMAIL_USE_TLS, EMAIL_FROM, EMAIL_TO
+from app.config import EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD, EMAIL_USE_TLS, EMAIL_FROM, EMAIL_TO, EMAIL_CC
 from app.logger import logger
 import os
 
@@ -15,6 +15,8 @@ def send_email(subject: str, body: str, attachment_path: str = None, attachments
     msg = MIMEMultipart('related')
     msg['From'] = EMAIL_FROM
     msg['To'] = EMAIL_TO
+    if EMAIL_CC:
+        msg['Cc'] = EMAIL_CC
     msg['Subject'] = subject
 
     # Build alternative part (plain text + HTML)
@@ -50,9 +52,13 @@ def send_email(subject: str, body: str, attachment_path: str = None, attachments
                 server.starttls()
 
         server.login(EMAIL_USER, EMAIL_PASSWORD)
-        server.sendmail(EMAIL_FROM, EMAIL_TO.split(','), msg.as_string())
+        recipients = EMAIL_TO.split(',') + (EMAIL_CC.split(',') if EMAIL_CC else [])
+        server.sendmail(EMAIL_FROM, recipients, msg.as_string())
         server.quit()
-        logger.info(f"E-mail enviado para {EMAIL_TO}")
+        if EMAIL_CC:
+            logger.info(f"E-mail enviado para {EMAIL_TO} (CC: {EMAIL_CC})")
+        else:
+            logger.info(f"E-mail enviado para {EMAIL_TO}")
     except Exception as e:
         logger.error(f"Falha ao enviar e-mail: {e}")
 
