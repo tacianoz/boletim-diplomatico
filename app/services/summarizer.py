@@ -451,14 +451,15 @@ Notas do dia (título + conteúdo integral, cada nota separada por "###"):
         return ""
 
     def _previous_synthesis_block(self, previous_synthesis: str) -> str:
-        """Bloco opcional com a síntese do boletim anterior, para continuidade."""
+        """Bloco opcional com as sínteses dos boletins anteriores, para continuidade.
+        Pode conter um ou vários blocos, cada um com cabeçalho de data, em ordem cronológica."""
         if not previous_synthesis or not previous_synthesis.strip():
             return ""
         return f"""
 
-CONTINUIDADE — síntese do boletim anterior (último dia útil), reproduzida abaixo apenas como pano de fundo:
+CONTINUIDADE — sínteses dos boletins anteriores (últimos dias úteis, em ordem cronológica, cada bloco com sua data), reproduzidas abaixo apenas como pano de fundo:
 \"\"\"
 {previous_synthesis.strip()}
 \"\"\"
 
-Use essa síntese para situar-se, evitar repetir construções idênticas e, quando fizer sentido, articular conexões com os acontecimentos de hoje (ex.: visita anunciada ontem que se realiza hoje, declaração que ganha novo desdobramento). NÃO repita os fatos do dia anterior — eles já são conhecidos do leitor. A síntese anterior é contexto, não conteúdo a ser reportado."""
+Use essas sínteses para situar-se, evitar repetir construções idênticas e, quando fizer sentido, articular conexões com os acontecimentos de hoje (ex.: visita anunciada dias atrás que se realiza hoje, declaração que ganha novo desdobramento). NÃO repita os fatos dos dias anteriores — eles já são conhecidos do leitor. As sínteses anteriores são contexto, não conteúdo a ser reportado."""

@@ -16,12 +16,31 @@ import os
 import glob
 
 
+PREVIOUS_SYNTHESES_WINDOW = 3
+
+
+def _format_dates_header(dates_part: str) -> str:
+    """Converte '20260521' ou '20260516_20260517' em DD/MM/YYYY [e DD/MM/YYYY]."""
+    parts = dates_part.split('_')
+    formatted = []
+    for p in parts:
+        if len(p) == 8 and p.isdigit():
+            formatted.append(f"{p[6:8]}/{p[4:6]}/{p[0:4]}")
+        else:
+            formatted.append(p)
+    return ' e '.join(formatted)
+
+
 def _load_previous_synthesis(archive_dir: str, current_dates_str: str) -> str | None:
-    """Lê a síntese mais recente em `archive_dir` que seja de um dia anterior ao atual.
-    Retorna None se não houver, sem erro — primeira execução é caso esperado."""
+    """Lê as últimas N sínteses anteriores ao dia atual e devolve concatenadas em ordem
+    cronológica, com cabeçalho de data por bloco. N = PREVIOUS_SYNTHESES_WINDOW.
+    Retorna None se não houver nenhuma — primeira execução é caso esperado."""
     pattern = os.path.join(archive_dir, 'notas_*.synthesis.txt')
     candidates = sorted(glob.glob(pattern))
+    selected = []  # tuples (dates_part, content) em ordem do mais recente pro mais antigo
     for path in reversed(candidates):
+        if len(selected) >= PREVIOUS_SYNTHESES_WINDOW:
+            break
         filename = os.path.basename(path)
         # Extrai a parte de datas: notas_YYYYMMDD[...].synthesis.txt
         dates_part = filename[len('notas_'):-len('.synthesis.txt')]
@@ -30,10 +49,18 @@ def _load_previous_synthesis(archive_dir: str, current_dates_str: str) -> str | 
             continue
         try:
             with open(path, 'r', encoding='utf-8') as f:
-                return f.read().strip()
+                selected.append((dates_part, f.read().strip()))
         except OSError:
             continue
-    return None
+    if not selected:
+        return None
+    # Ordem cronológica (mais antigo → mais recente)
+    selected.reverse()
+    blocks = [
+        f"[Síntese de {_format_dates_header(dates_part)}]\n{content}"
+        for dates_part, content in selected
+    ]
+    return "\n\n---\n\n".join(blocks)
 
 
 def generate_daily_notes(target_dates=None):
