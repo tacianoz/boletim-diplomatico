@@ -61,6 +61,7 @@ def send_email(subject: str, body: str, attachment_path: str = None, attachments
             logger.info(f"E-mail enviado para {EMAIL_TO}")
     except Exception as e:
         logger.error(f"Falha ao enviar e-mail: {e}")
+        raise
 
 
 def _attach_file(msg, path):
