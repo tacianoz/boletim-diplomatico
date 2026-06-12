@@ -57,9 +57,15 @@ TIMEZONE = os.getenv('TIMEZONE', 'Asia/Kolkata')
 LOG_PATH = os.getenv('LOG_PATH', 'logs/boletim.log')
 
 # URLs específicas para scraping
-MEA_PRESS_RELEASES_URL = "https://www.mea.gov.in/press-releases.htm?51/Press_Releases"
-MEA_MEDIA_BRIEFINGS_URL = "https://www.mea.gov.in/media-briefings.htm?49/Media_Briefings"
-MEA_SPEECHES_URL = "https://www.mea.gov.in/Speeches-Statements.htm?50/Speeches__amp;_Statements"
+# O site do MEA carrega as listagens e detalhes via AJAX; o HTML das páginas só contém menus
+MEA_BASE_URL = "https://www.mea.gov.in"
+MEA_LISTING_API_URL = "https://www.mea.gov.in/FrontEnd/FetchPublicationListingData"
+MEA_DETAIL_API_URL = "https://www.mea.gov.in/FrontEnd/FetchPublicationDetailData"
+MEA_PUBLICATION_IDS = {
+    'MEA - Press Releases': 51,
+    'MEA - Media Briefings': 49,
+    'MEA - Speeches & Statements': 50,
+}
 PM_RELEASES_URL = "https://www.pib.gov.in/PMContents/PMContents.aspx?menuid=1&lang=1&reg=3" # URL with English language
 
 # Configurações de scraping

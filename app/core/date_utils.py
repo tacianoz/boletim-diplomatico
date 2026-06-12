@@ -22,6 +22,8 @@ def parse_date_string(date_str: str) -> Optional[date]:
         '%B %d %Y',       # August 06 2025
         '%d, %B %Y',      # 06, August 2025
         '%d %B %Y',       # 06 August 2025
+        '%d %B, %Y',      # 06 August, 2025 (novo site do MEA)
+        '%d %b, %Y',      # 06 Aug, 2025
         '%d/%m/%Y',       # 07/08/2025
         '%Y-%m-%d',       # 2025-08-07
         '%d-%m-%Y',       # 07-08-2025
