@@ -35,6 +35,12 @@ class BaseScraper:
         self.retry_attempts = 3
         self.retry_delays = [1, 2, 4]  # segundos
         self.timeout = 30
+        # Sessão persistente: mantém cookies entre as chamadas (priming da home +
+        # endpoints AJAX). WAFs costumam setar um cookie na primeira visita e exigi-lo
+        # nas requisições seguintes; reusar a sessão satisfaz isso.
+        self.session = requests.Session()
+        self.session.headers.update(self.HEADERS)
+        self.session.max_redirects = 5
     
     def get_selenium_options(self):
         """Retorna opções configuradas para Selenium Chrome"""
@@ -56,9 +62,12 @@ class BaseScraper:
 
         return chrome_options
     
-    def fetch_page(self, url: str, retry: bool = True) -> Optional[str]:
+    def fetch_page(self, url: str, retry: bool = True, headers: Optional[Dict] = None) -> Optional[str]:
         """
-        Busca uma página web com retry logic e delay aleatório
+        Busca uma página web com retry logic e delay aleatório.
+
+        `headers` permite sobrescrever/complementar headers por requisição
+        (ex.: Referer da seção e X-Requested-With para chamadas AJAX).
         """
         attempt = 0
         while attempt < self.retry_attempts:
@@ -69,42 +78,46 @@ class BaseScraper:
                     time.sleep(delay)
                 else:
                     time.sleep(random.uniform(1, 3))
-                
-                session = requests.Session()
-                session.headers.update(self.HEADERS)
-                # Limitar redirects para evitar loops infinitos
-                session.max_redirects = 5
-                
-                resp = session.get(url, timeout=self.timeout, allow_redirects=True)
+
+                resp = self.session.get(
+                    url,
+                    timeout=self.timeout,
+                    allow_redirects=True,
+                    headers=headers,
+                )
                 resp.raise_for_status()
                 return resp.text
-                
+
             except requests.exceptions.Timeout:
                 attempt += 1
                 logger.warning(f"Timeout ao acessar {url} (tentativa {attempt}/{self.retry_attempts})")
                 if attempt >= self.retry_attempts:
                     logger.error(f"Falha ao acessar {url} após {self.retry_attempts} tentativas (timeout)")
                     return None
-                    
+
             except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 404:
+                status = e.response.status_code
+                if status == 404:
                     logger.error(f"404 - Página não encontrada: {url}")
                     return None
-                elif e.response.status_code >= 500:
+                # 5xx e bloqueios transitórios (403 Forbidden / 429 Too Many Requests)
+                # são reprocessados com backoff — o WAF do MEA costuma bloquear de
+                # forma intermitente, então uma nova tentativa geralmente passa.
+                elif status >= 500 or status in (403, 429):
                     attempt += 1
-                    logger.warning(f"Erro {e.response.status_code} ao acessar {url} (tentativa {attempt}/{self.retry_attempts})")
+                    logger.warning(f"Erro {status} ao acessar {url} (tentativa {attempt}/{self.retry_attempts})")
                     if attempt >= self.retry_attempts:
-                        logger.error(f"Falha ao acessar {url} após {self.retry_attempts} tentativas (erro {e.response.status_code})")
+                        logger.error(f"Falha ao acessar {url} após {self.retry_attempts} tentativas (erro {status})")
                         return None
                 else:
-                    logger.error(f"Erro HTTP {e.response.status_code} ao acessar {url}: {e}")
+                    logger.error(f"Erro HTTP {status} ao acessar {url}: {e}")
                     return None
-                    
+
             except requests.exceptions.TooManyRedirects as e:
                 logger.warning(f"Muitos redirects ao acessar {url}: {e}")
                 # Tentar sem seguir redirects para ver a resposta final
                 try:
-                    resp = session.get(url, timeout=self.timeout, allow_redirects=False)
+                    resp = self.session.get(url, timeout=self.timeout, allow_redirects=False)
                     logger.info(f"URL final após redirects: {resp.headers.get('Location', url)}")
                 except:
                     pass

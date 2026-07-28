@@ -26,8 +26,35 @@ class MEAScraper(BaseScraper):
 
     LISTING_PAGE_SIZE = 50
 
+    def __init__(self):
+        super().__init__()
+        self._primed = False
+
+    def _ajax_headers(self) -> Dict[str, str]:
+        """Headers que deixam a requisição parecida com o XHR do próprio site"""
+        return {
+            'Referer': f"{MEA_BASE_URL}/press-releases.htm",
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'text/html, */*; q=0.01',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+        }
+
+    def _ensure_primed(self) -> None:
+        """Visita a home do MEA uma vez para coletar cookies do WAF antes do AJAX.
+
+        A sessão é persistente (BaseScraper), então os cookies obtidos aqui são
+        reaproveitados nas chamadas AJAX seguintes.
+        """
+        if self._primed:
+            return
+        self.fetch_page(MEA_BASE_URL + '/')
+        self._primed = True
+
     def _fetch_listing_html(self, publication_id: int) -> Optional[str]:
         """Busca o fragmento HTML da listagem via endpoint AJAX do site"""
+        self._ensure_primed()
         params = {
             'publicationId': publication_id,
             'KeywordName': '',
@@ -39,7 +66,7 @@ class MEAScraper(BaseScraper):
             'PLngId': 1,
         }
         url = f"{MEA_LISTING_API_URL}?{urlencode(params)}"
-        return self.fetch_page(url)
+        return self.fetch_page(url, headers=self._ajax_headers())
 
     def _parse_listing(self, html: str, tipo: str, target_dates: List[date]) -> List[Dict]:
         """Parse documents from the AJAX listing fragment"""
@@ -106,8 +133,9 @@ class MEAScraper(BaseScraper):
         """Busca o conteúdo completo do documento via endpoint AJAX de detalhe"""
         pkid = self._extract_pkid(link)
         if pkid:
+            self._ensure_primed()
             url = f"{MEA_DETAIL_API_URL}?{urlencode({'pkid': pkid, 'languageId': 1})}"
-            html = self.fetch_page(url)
+            html = self.fetch_page(url, headers=self._ajax_headers())
             if html:
                 soup = BeautifulSoup(html, 'html.parser')
                 for unwanted in soup(['script', 'style']):
