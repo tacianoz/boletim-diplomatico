@@ -368,8 +368,19 @@ TEMPO VERBAL: deixe-se guiar pelo conteúdo de cada nota.
 FOCO: a agenda do Primeiro-Ministro Modi é sempre relevante.
 Temas prioritários: agricultura, defesa, energia, ciência e tecnologia, comércio e saúde.
 
-ABERTURA: o parágrafo pode começar com uma frase introdutória, mas ela precisa ter conteúdo analítico próprio — nomear a tensão central, o eixo geopolítico ou o vetor que organiza o dia, em formulação que só faça sentido para AQUELE dia específico (se a mesma frase pudesse abrir o boletim de outro dia qualquer, ela é genérica demais). NUNCA use molduras vagas e clichês como "Em dia de intensa atividade diplomática…", "A jornada diplomática indiana concentrou-se…", "O dia foi dominado por…", "Em mais um dia agitado…", "A diplomacia indiana teve como eixo…", "A agenda diplomática do dia…". Esse tipo de abertura preenche linha sem informar.
-- Se nenhuma abertura analítica surgir naturalmente do material, comece direto no fato mais relevante (ator + ação concreta), sem moldura.
+ABERTURA: a primeira frase informa, não caracteriza — entrega fato, não rótulo do dia. Fora isso ela não tem forma fixa, e é exatamente aí que este boletim tropeça: como chega todo dia ao mesmo leitor, qualquer desenho de frase repetido dia após dia vira fôrma, por melhor que seja o desenho. O leitor percebe a fôrma antes de perceber o conteúdo, e passa a ler no automático.
+
+Dois vícios já observados, na ordem em que apareceram:
+(a) Abrir caracterizando o dia em vez de relatá-lo: sujeito abstrato (a visita, a reunião, a entrada em vigor, a troca de comando) seguido de verbo figurado que atribui ao dia um tom, uma medida, uma moldura, uma densidade ou um eixo — "deu ao dia sua principal moldura externa", "deu o tom do dia", "deu a medida do dia", "deu densidade externa ao dia", "o eixo do dia foi", "o eixo do dia deslocou-se", "consolidou-se como o eixo do dia", "dominou o dia", "emoldurou a agenda", "ganhou tração política". Trocar o substantivo dentro da fórmula (tom → medida → densidade → vetor) não resolve: o que enjoa é o desenho, não a palavra.
+(b) A correção de (a) levada ao automatismo: cinco dias seguidos abrindo com agente + verbo de ato oficial no pretérito + objeto — "O Ministério das Relações Exteriores convocou o embaixador…", "**Narendra Modi** presidiu a reunião…", "**Narendra Modi** recebeu telefonema…". Cada uma dessas frases informa bem; em série, viram ladainha.
+
+O que (b) ensina: variar o ator não é variar a estrutura. Trocar quem ocupa o sujeito e manter sujeito-verbo-objeto no pretérito é o mesmo molde com outro nome dentro.
+
+O ponto de entrada da frase não precisa ser o agente da ação. Um fato tem vários ângulos por onde se pode começar a contá-lo — o que mudou de estado, a contrapartida do outro lado da mesa, o lugar, o momento, a cifra que pesa, o compromisso assumido, aquilo que estava anunciado e se cumpriu, o que ficou de fora. A frase também admite mais de um andamento: pode começar por circunstância antes do fato, pode subordinar o secundário ao principal, pode enunciar o resultado antes de quem o produziu. Escolha o começo pelo elemento que carrega o peso da notícia NAQUELE dia, que raramente é o mesmo elemento dois dias seguidos. Não rode uma lista de variações mecanicamente nem force inversão que soe artificial: pergunte-se onde a notícia daquele dia realmente começa, e comece ali.
+
+Desconfie de qualquer primeira frase cujo predicado seja sobre "o dia" (o dia teve, ganhou, foi marcado por, concentrou-se em, viu). O predicado deve recair sobre o que aconteceu.
+
+Continua valendo o veto a molduras vagas do tipo "Em dia de intensa atividade diplomática…", "A jornada diplomática indiana concentrou-se…", "Em mais um dia agitado…", "A agenda diplomática do dia…" — preenchem linha sem informar.
 
 ESTILO: registro editorial de grande revista internacional (The Economist, Financial Times)
 em português do Brasil — NÃO em português europeu.
@@ -386,6 +397,10 @@ em português do Brasil — NÃO em português europeu.
   Esse tipo de análise rasa enche linguiça e não agrega informação.
 - Análise SOMENTE quando for substantiva e puder ser extraída diretamente do conteúdo
   das notas — nunca como arremate vago de frase.
+- Linguagem concreta ao longo de todo o parágrafo, não só na abertura. Metáforas de
+  peso, temperatura, geometria ou medida aplicadas a abstrações ("a agenda ganhou
+  tração", "o eixo deslocou-se", "o encontro deu densidade à relação") custam uma
+  linha e não acrescentam fato; prefira o verbo que descreve a ação real.
 - Tom sóbrio e informado. Nunca irônico, nunca opinativo, nunca diplomaticamente
   sensível. O texto deve poder circular em ambiente diplomático sem causar embaraço.
 - Frases curtas, com ritmo. Articule as transições entre os fatos com conectivos
@@ -462,4 +477,8 @@ CONTINUIDADE — sínteses dos boletins anteriores (últimos dias úteis, em ord
 {previous_synthesis.strip()}
 \"\"\"
 
-Use essas sínteses para situar-se, evitar repetir construções idênticas e, quando fizer sentido, articular conexões com os acontecimentos de hoje (ex.: visita anunciada dias atrás que se realiza hoje, declaração que ganha novo desdobramento). NÃO repita os fatos dos dias anteriores — eles já são conhecidos do leitor. As sínteses anteriores são contexto, não conteúdo a ser reportado."""
+Use essas sínteses para situar-se e, quando fizer sentido, articular conexões com os acontecimentos de hoje (ex.: visita anunciada dias atrás que se realiza hoje, declaração que ganha novo desdobramento). NÃO repita os fatos dos dias anteriores — eles já são conhecidos do leitor. As sínteses anteriores são contexto, não conteúdo a ser reportado.
+
+Sirva-se delas também como controle de repetição, e o controle é estrutural, não lexical: antes de entregar, releia as primeiras frases dos blocos acima e compare com a sua.
+
+Atenção ao que conta como "mesmo desenho", porque é onde este boletim já escorregou: não é repetir palavras, nem repetir o ator. Se as anteriores abrem pelo agente da ação seguido de verbo no pretérito, e a sua também abre pelo agente da ação seguido de verbo no pretérito, o desenho é o mesmo — ainda que o agente seja outro, o verbo seja outro e nenhuma palavra coincida. Nesse caso, reescreva a abertura entrando por outro ângulo do mesmo fato. Descreva mentalmente a estrutura de cada abertura anterior antes de fixar a sua; se a descrição da sua coincidir com a de qualquer uma delas, ainda não está pronta."""
